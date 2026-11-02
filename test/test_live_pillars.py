@@ -114,8 +114,35 @@ def test_live_production():
         assert final_state == 'WIN'
         assert page.is_visible('#win-modal')
 
-        page.screenshot(path=os.path.join(ARTIFACT_DIR, "live_production_pillars_verified.png"))
-        print("[Live] Production Live Verification 100% Passed! Screenshot saved.")
+        # Verify Pillar 3: WhatsApp Share Button on Victory Modal
+        win_share_visible = page.is_visible('#win-share-btn')
+        print(f"[Live] Victory Modal WhatsApp Share: {win_share_visible}")
+        assert win_share_visible
+
+        # Go to Main Menu
+        page.click('#win-menu-btn')
+        time.sleep(1.0)
+
+        # Verify Pillar 3: Saheli Circle Modal on Live
+        page.click('#saheli-btn')
+        time.sleep(0.8)
+        assert page.is_visible('#saheli-modal')
+        circle_title = page.inner_text('#saheli-circle-name')
+        print(f"[Live] Saheli Circle Title: {circle_title}")
+        assert "Jaipur Gulal" in circle_title or "सहेलियाँ" in circle_title
+
+        # Gift life to member
+        initial_coins = int(page.inner_text('#header-coins'))
+        gift_btn = page.query_selector('.btn-gift-life:not(.gifted)')
+        if gift_btn:
+            gift_btn.click()
+            time.sleep(0.6)
+            new_coins = int(page.inner_text('#header-coins'))
+            print(f"[Live] Coins after gifting life: {new_coins} (was {initial_coins})")
+            assert new_coins == initial_coins + 10
+
+        page.screenshot(path=os.path.join(ARTIFACT_DIR, "live_production_pillars_all_verified.png"))
+        print("[Live] Pillars 1, 2, and 3 Live Verification 100% Passed! Screenshot saved.")
 
         browser.close()
 

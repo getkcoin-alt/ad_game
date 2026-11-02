@@ -328,9 +328,13 @@ class GameController {
 
         // Win / Fail Modal buttons
         document.getElementById('win-next-btn')?.addEventListener('click', () => {
+            document.getElementById('win-modal')?.classList.add('hidden');
+            document.getElementById('win-modal')?.classList.remove('flex');
             this.startLevel(this.currentLevelId + 1);
         });
         document.getElementById('win-menu-btn')?.addEventListener('click', () => {
+            document.getElementById('win-modal')?.classList.add('hidden');
+            document.getElementById('win-modal')?.classList.remove('flex');
             this.showScreen('menu-screen');
         });
         document.getElementById('fail-retry-btn')?.addEventListener('click', () => {
@@ -366,6 +370,15 @@ class GameController {
     }
 
     showScreen(screenId) {
+        // Dismiss modal overlays when switching screens
+        ['win-modal', 'fail-modal', 'pause-modal', 'how-modal', 'saheli-modal', 'ad-modal'].forEach(mId => {
+            const m = document.getElementById(mId);
+            if (m) {
+                m.classList.add('hidden');
+                m.classList.remove('flex');
+            }
+        });
+
         ['menu-screen', 'game-screen', 'courtyard-screen'].forEach(id => {
             const elem = document.getElementById(id);
             if (elem) {
