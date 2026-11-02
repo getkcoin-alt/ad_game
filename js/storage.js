@@ -86,11 +86,46 @@ class StorageManager {
     }
 
     getTimeUntilNextLife() {
+        this.updateLivesRegeneration();
         if (this.data.lives >= 5) return 0;
         const REGEN_TIME_MS = 20 * 60 * 1000;
         const now = Date.now();
         const elapsed = now - this.data.lastLifeTimestamp;
         return Math.max(0, REGEN_TIME_MS - elapsed);
+    }
+
+    getTotalTimeUntilFullLives() {
+        this.updateLivesRegeneration();
+        if (this.data.lives >= 5) return 0;
+        const REGEN_TIME_MS = 20 * 60 * 1000;
+        const nextTime = this.getTimeUntilNextLife();
+        const remainingAfterNext = Math.max(0, 4 - this.data.lives) * REGEN_TIME_MS;
+        return nextTime + remainingAfterNext;
+    }
+
+    formatTime(ms) {
+        if (ms <= 0) return "00:00";
+        const totalSec = Math.floor(ms / 1000);
+        const mins = Math.floor(totalSec / 60);
+        const secs = totalSec % 60;
+        const mStr = String(mins).padStart(2, '0');
+        const sStr = String(secs).padStart(2, '0');
+        return `${mStr}:${sStr}`;
+    }
+
+    formatDuration(ms) {
+        if (ms <= 0) return "0s";
+        const totalSec = Math.floor(ms / 1000);
+        const hrs = Math.floor(totalSec / 3600);
+        const mins = Math.floor((totalSec % 3600) / 60);
+        const secs = totalSec % 60;
+        if (hrs > 0) {
+            return `${hrs}h ${mins}m`;
+        }
+        if (mins > 0) {
+            return `${mins}m ${secs}s`;
+        }
+        return `${secs}s`;
     }
 
     deductLife() {

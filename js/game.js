@@ -70,6 +70,7 @@ class GameController {
         this.lastMoveTime = Date.now();
         this.hintMove = null;
         this.hintTimer = null;
+        this.livesTimerInterval = null;
         this.animFrameId = null;
 
         // Sound & Language
@@ -97,6 +98,9 @@ class GameController {
 
         // Start idle hint timer
         this.startHintChecker();
+
+        // Start live heart energy timer
+        this.startLivesTimer();
     }
 
     startLoop() {
@@ -131,6 +135,123 @@ class GameController {
     resetHint() {
         this.lastMoveTime = Date.now();
         this.hintMove = null;
+    }
+
+    // Heart Energy & Live Refill Timer System
+    startLivesTimer() {
+        if (this.livesTimerInterval) clearInterval(this.livesTimerInterval);
+        this.updateLivesTimerUI();
+        this.livesTimerInterval = setInterval(() => {
+            this.updateLivesTimerUI();
+        }, 1000);
+    }
+
+    updateLivesTimerUI() {
+        const sm = window.StorageManager;
+        if (!sm) return;
+
+        const prevLives = sm.data.lives;
+        sm.updateLivesRegeneration();
+        if (sm.data.lives !== prevLives) {
+            this.updateHeaderUI();
+        }
+
+        const timerEl = document.getElementById('header-lives-timer');
+        const modalBadge = document.getElementById('lives-modal-badge');
+        const modalNext = document.getElementById('lives-modal-next-time');
+        const modalFull = document.getElementById('lives-modal-full-time');
+        const modalCount = document.getElementById('lives-modal-count');
+        const modalProgress = document.getElementById('lives-modal-progress');
+        const t = (window.I18N && window.I18N[this.currentLang]) || window.I18N?.en || {};
+
+        const isFull = sm.data.lives >= 5;
+        const msUntilNext = sm.getTimeUntilNextLife();
+        const msUntilFull = sm.getTotalTimeUntilFullLives();
+
+        const formattedNext = sm.formatTime(msUntilNext);
+        const formattedFull = sm.formatDuration(msUntilFull);
+        const fullLabel = t.livesFull || "FULL";
+        const displayText = isFull ? fullLabel : formattedNext;
+
+        if (timerEl) {
+            timerEl.textContent = displayText;
+            if (isFull) {
+                timerEl.classList.add('is-full');
+            } else {
+                timerEl.classList.remove('is-full');
+            }
+        }
+
+        if (modalBadge) {
+            modalBadge.textContent = displayText;
+            if (isFull) modalBadge.classList.add('is-full');
+            else modalBadge.classList.remove('is-full');
+        }
+
+        if (modalNext) {
+            modalNext.textContent = isFull ? fullLabel : formattedNext;
+        }
+
+        if (modalFull) {
+            modalFull.textContent = isFull ? fullLabel : formattedFull;
+        }
+
+        if (modalCount) {
+            modalCount.textContent = sm.data.lives;
+        }
+
+        if (modalProgress) {
+            if (isFull) {
+                modalProgress.style.width = '100%';
+            } else {
+                const REGEN_TIME_MS = 20 * 60 * 1000;
+                const elapsed = Math.max(0, REGEN_TIME_MS - msUntilNext);
+                const pct = Math.min(100, Math.max(4, (elapsed / REGEN_TIME_MS) * 100));
+                modalProgress.style.width = `${pct}%`;
+            }
+        }
+    }
+
+    showLivesModal() {
+        this.updateLivesTimerUI();
+        const modal = document.getElementById('lives-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    }
+
+    watchAdForLife() {
+        window.AdSystem.showRewardedAd('lives_refill', () => {
+            window.StorageManager.addLives(1);
+            this.updateHeaderUI();
+            this.updateLivesTimerUI();
+            document.getElementById('lives-modal')?.classList.add('hidden');
+            document.getElementById('lives-modal')?.classList.remove('flex');
+            window.AudioEngine.playLevelVictory();
+            window.HapticEngine.victoryFanfare();
+        });
+    }
+
+    refillLivesWithCoins() {
+        const sm = window.StorageManager;
+        if (sm.data.lives >= 5) {
+            alert((this.currentLang === 'hi') ? "प्राण पहले से ही पूर्ण हैं!" : "Hearts are already full!");
+            return;
+        }
+        if (sm.deductCoins(100)) {
+            sm.data.lives = 5;
+            sm.data.lastLifeTimestamp = Date.now();
+            sm.save();
+            this.updateHeaderUI();
+            this.updateLivesTimerUI();
+            document.getElementById('lives-modal')?.classList.add('hidden');
+            document.getElementById('lives-modal')?.classList.remove('flex');
+            window.AudioEngine.playLevelVictory();
+            window.HapticEngine.victoryFanfare();
+        } else {
+            alert((this.currentLang === 'hi') ? "सिक्के पर्याप्त नहीं हैं! (आवश्यक: १०० सिक्के)" : "Not enough coins! (Needed: 100 coins)");
+        }
     }
 
     // Input Handling (Touch & Mouse Support for Android and Desktop)
@@ -343,6 +464,26 @@ class GameController {
             this.shareOnWhatsApp('invite');
         });
 
+        // Heart Energy & Timer Refill Modal bindings
+        document.getElementById('header-lives-chip')?.addEventListener('click', () => {
+            this.showLivesModal();
+        });
+        document.getElementById('lives-modal-close-btn')?.addEventListener('click', () => {
+            document.getElementById('lives-modal')?.classList.add('hidden');
+            document.getElementById('lives-modal')?.classList.remove('flex');
+        });
+        document.getElementById('lives-refill-ad-btn')?.addEventListener('click', () => {
+            this.watchAdForLife();
+        });
+        document.getElementById('lives-refill-coins-btn')?.addEventListener('click', () => {
+            this.refillLivesWithCoins();
+        });
+        document.getElementById('lives-ask-saheli-btn')?.addEventListener('click', () => {
+            document.getElementById('lives-modal')?.classList.add('hidden');
+            document.getElementById('lives-modal')?.classList.remove('flex');
+            this.showSaheliModal();
+        });
+
         // WhatsApp Share Buttons on Victory & Courtyard
         document.getElementById('win-share-btn')?.addEventListener('click', () => {
             this.shareOnWhatsApp('victory');
@@ -416,11 +557,12 @@ class GameController {
 
         const langBtn = document.getElementById('lang-toggle-btn');
         if (langBtn) langBtn.textContent = (lang === 'en') ? 'हिन्दी' : 'English';
+        this.updateLivesTimerUI();
     }
 
     showScreen(screenId) {
         // Dismiss modal overlays when switching screens
-        ['win-modal', 'fail-modal', 'pause-modal', 'how-modal', 'saheli-modal', 'ad-modal'].forEach(mId => {
+        ['win-modal', 'fail-modal', 'pause-modal', 'how-modal', 'saheli-modal', 'ad-modal', 'lives-modal'].forEach(mId => {
             const m = document.getElementById(mId);
             if (m) {
                 m.classList.add('hidden');
@@ -468,6 +610,8 @@ class GameController {
         if (livesEl) livesEl.textContent = sm.data.lives;
         if (coinsEl) coinsEl.textContent = sm.data.coins;
         if (starsEl) starsEl.textContent = sm.data.stars;
+
+        this.updateLivesTimerUI();
 
         // Pillar 2: Shringaar Blessing Streak Badge
         const streakEl = document.getElementById('header-streak');
@@ -527,7 +671,7 @@ class GameController {
 
         // Check lives
         if (sm.data.lives <= 0) {
-            alert((this.currentLang === 'hi') ? "प्राण समाप्त! कृपया प्रतीक्षा करें या दैनिक शगुन चक्र घुमाएं।" : "No lives left! Please wait for refill or spin the Shagun Wheel.");
+            this.showLivesModal();
             return;
         }
 
@@ -542,6 +686,7 @@ class GameController {
         // Deduct 1 life
         sm.deductLife();
         this.updateHeaderUI();
+        this.updateLivesTimerUI();
 
         // Pillar 2: Shringaar Blessing starting bonuses (Butler's Gift equivalent)
         const streakTier = sm.getStreakTier();
@@ -557,6 +702,7 @@ class GameController {
         document.getElementById('win-modal')?.classList.add('hidden');
         document.getElementById('fail-modal')?.classList.add('hidden');
         document.getElementById('pause-modal')?.classList.add('hidden');
+        document.getElementById('lives-modal')?.classList.add('hidden');
 
         this.showScreen('game-screen');
         this.state = 'PLAYING';

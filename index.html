@@ -17,9 +17,10 @@
         <!-- Top Sticky Header -->
         <header class="app-header">
             <div class="header-stats">
-                <div class="stat-chip" title="Lives">
+                <div id="header-lives-chip" class="stat-chip lives-chip" title="Heart Energy & Timer (Click to Refill)" style="cursor: pointer;">
                     <span>❤️</span>
                     <span id="header-lives">5</span>
+                    <span id="header-lives-timer" class="lives-timer-pill is-full">FULL</span>
                 </div>
                 <div class="stat-chip" title="Shagun Coins">
                     <span>🪙</span>
@@ -330,6 +331,51 @@
                 </div>
 
                 <button id="saheli-close-btn" class="btn-secondary" style="width: 100%; padding: 8px;" data-i18n="close">Close</button>
+            </div>
+        </div>
+
+        <!-- Lives & Heart Energy Refill Modal -->
+        <div id="lives-modal" class="modal-overlay hidden">
+            <div class="modal-card royal-card text-center" style="max-width: 360px;">
+                <div class="modal-header-icon" style="font-size: 48px; animation: flamePulse 2s infinite ease-in-out;">❤️</div>
+                <h3 style="font-size: 20px; color: var(--accent-gold); margin-bottom: 4px;" data-i18n="refillModalTitle">Heart Energy & Refill</h3>
+                <p style="font-size: 13px; color: #E2E8F0; margin-bottom: 16px;" data-i18n="refillModalSub">Hearts regenerate naturally every 20 minutes.</p>
+
+                <!-- Status Card -->
+                <div style="background: rgba(15, 4, 16, 0.6); border: 1px solid var(--border-gold); border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 14px; font-weight: 700; color: #FDE047;"><span data-i18n="lives">Lives</span>: <span id="lives-modal-count">5</span> / 5</span>
+                        <span id="lives-modal-badge" class="lives-timer-pill is-full" style="font-size: 12px; padding: 2px 8px;">FULL</span>
+                    </div>
+
+                    <!-- Heart countdown progress bar -->
+                    <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
+                        <div id="lives-modal-progress" style="width: 100%; height: 100%; background: linear-gradient(90deg, #EF4444, #F59E0B); transition: width 0.3s;"></div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #CBD5E1;">
+                        <span><span data-i18n="nextLifeIn">Next heart in</span>: <strong id="lives-modal-next-time" style="color: #FBBF24;">FULL</strong></span>
+                        <span><span data-i18n="fullRecoveryIn">Full hearts in</span>: <strong id="lives-modal-full-time" style="color: #34D399;">FULL</strong></span>
+                    </div>
+                </div>
+
+                <!-- Refill Actions -->
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;">
+                    <button id="lives-refill-ad-btn" class="btn-royal-action" style="padding: 10px 14px; font-size: 14px; justify-content: center; gap: 8px; width: 100%;">
+                        <span>🎬</span>
+                        <span data-i18n="refillAdFree">Watch Video (+1 ❤️ Free)</span>
+                    </button>
+                    <button id="lives-refill-coins-btn" class="btn-royal-action" style="padding: 10px 14px; font-size: 14px; justify-content: center; gap: 8px; width: 100%; background: linear-gradient(135deg, rgba(217, 119, 6, 0.4), rgba(180, 83, 9, 0.4));">
+                        <span>🪙</span>
+                        <span data-i18n="refillAllCoins">Instant Refill (100 🪙)</span>
+                    </button>
+                    <button id="lives-ask-saheli-btn" class="btn-royal-action" style="padding: 10px 14px; font-size: 14px; justify-content: center; gap: 8px; width: 100%;">
+                        <span>👭</span>
+                        <span data-i18n="askForLives">Ask Sahelis for Free Life</span>
+                    </button>
+                </div>
+
+                <button id="lives-modal-close-btn" class="btn-primary" style="width: 100%; padding: 10px; font-size: 14px;" data-i18n="close">Close</button>
             </div>
         </div>
     </div>

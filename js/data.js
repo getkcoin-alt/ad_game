@@ -369,7 +369,14 @@ const I18N = {
         inboxGifts: "Shagun Gifts",
         claimGift: "Accept Life (+1 ❤️)",
         lifeRequestedToast: "Life request sent to your Sahelis!",
-        giftGivenToast: "You gifted a life and received +10 Shagun Coins!"
+        giftGivenToast: "You gifted a life and received +10 Shagun Coins!",
+        livesFull: "FULL",
+        nextLifeIn: "Next heart in",
+        fullRecoveryIn: "Full hearts in",
+        refillModalTitle: "Heart Energy & Refill",
+        refillModalSub: "Hearts regenerate naturally every 20 minutes.",
+        refillAllCoins: "Instant Refill (100 🪙)",
+        refillAdFree: "Watch Video (+1 ❤️ Free)"
     },
     hi: {
         gameTitle: "रंगोली उत्सव",
@@ -440,7 +447,14 @@ const I18N = {
         inboxGifts: "शगुन उपहार",
         claimGift: "प्राण स्वीकार करें (+१ ❤️)",
         lifeRequestedToast: "सहेलियों को प्राण संदेश भेजा गया!",
-        giftGivenToast: "आपने सहेली को प्राण भेजा और १० सिक्के पाए!"
+        giftGivenToast: "आपने सहेली को प्राण भेजा और १० सिक्के पाए!",
+        livesFull: "पूर्ण",
+        nextLifeIn: "अगला प्राण",
+        fullRecoveryIn: "पूर्ण प्राण",
+        refillModalTitle: "प्राण ऊर्जा एवं नवीनीकरण",
+        refillModalSub: "प्राण हर २० मिनट में स्वतः बनते हैं।",
+        refillAllCoins: "तुरंत पूर्ण करें (१०० 🪙)",
+        refillAdFree: "छोटा संदेश देखें (+१ ❤️ मुफ़्त)"
     }
 };
 

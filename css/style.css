@@ -84,6 +84,39 @@ body, html {
     font-weight: 600;
 }
 
+.lives-chip {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    user-select: none;
+}
+
+.lives-chip:hover, .lives-chip:active {
+    transform: scale(1.04);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
+.lives-timer-pill {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: rgba(245, 158, 11, 0.2);
+    color: #FDE047;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    letter-spacing: 0.5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    display: inline-block;
+    min-width: 36px;
+    text-align: center;
+}
+
+.lives-timer-pill.is-full {
+    background: rgba(16, 185, 129, 0.2);
+    color: #6EE7B7;
+    border-color: rgba(16, 185, 129, 0.4);
+    font-family: inherit;
+    font-size: 10px;
+}
+
 .streak-chip {
     background: linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(245, 158, 11, 0.4));
     border: 1px solid #F59E0B;

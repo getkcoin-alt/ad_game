@@ -186,6 +186,34 @@ it('should handle Saheli Circle reciprocal life gifting and community chest rewa
     assert.strictEqual(sm.claimCommunityChest(1), false);
 });
 
+// 10. Heart Energy & Next Life Countdown Timer Calculations
+it('should calculate next heart refill timer and total full recovery duration accurately', () => {
+    const sm = window.StorageManager;
+    sm.data.lives = 5;
+    assert.strictEqual(sm.getTimeUntilNextLife(), 0, 'Full lives should have 0 ms next refill');
+    assert.strictEqual(sm.getTotalTimeUntilFullLives(), 0, 'Full lives should have 0 ms total recovery');
+
+    // Set 3 lives with lastLifeTimestamp 5 minutes ago (elapsed: 300,000 ms)
+    sm.data.lives = 3;
+    const now = Date.now();
+    sm.data.lastLifeTimestamp = now - (5 * 60 * 1000); // 5 min ago
+
+    const remainingNext = sm.getTimeUntilNextLife();
+    const expectedRemaining = 15 * 60 * 1000; // 15 min remaining for next heart
+    assert.ok(Math.abs(remainingNext - expectedRemaining) < 1000, `Expected ~15m next heart, got ${remainingNext}`);
+
+    const remainingTotal = sm.getTotalTimeUntilFullLives();
+    // 15m for next heart + 20m for 5th heart = 35m total
+    const expectedTotal = expectedRemaining + (20 * 60 * 1000);
+    assert.ok(Math.abs(remainingTotal - expectedTotal) < 1000, `Expected ~35m total full hearts, got ${remainingTotal}`);
+
+    // Verify formatters
+    assert.strictEqual(sm.formatTime(15 * 60 * 1000), "15:00");
+    assert.strictEqual(sm.formatTime(14 * 60 * 1000 + 25 * 1000), "14:25");
+    assert.strictEqual(sm.formatDuration(35 * 60 * 1000), "35m 0s");
+    assert.strictEqual(sm.formatDuration(75 * 60 * 1000), "1h 15m");
+});
+
 console.log(`\nEconomy & Psychology Tests Completed: ${passed}/${total} Passed!`);
 if (passed !== total) {
     process.exit(1);
