@@ -197,6 +197,80 @@ it('should detect available moves and shuffle if deadlocked', () => {
     assert.strictEqual(shuffled, true);
 });
 
+// 11. Pillar 1: Direct Tap-to-Activate Special (Royal Match Fluid UX)
+it('should detonate Anar Bomb in place without needing a swap', () => {
+    const grid = new Match3Grid(8, 8);
+    grid.initLevel(LEVEL_CONFIGS[0]);
+
+    grid.grid[3][3].gem = { id: 777, type: 1, special: SPECIAL_TYPES.ANAR_BOMB };
+    const blast = grid.detonateSpecialInPlace(3, 3);
+
+    assert.ok(blast !== null);
+    assert.strictEqual(blast.specialType, SPECIAL_TYPES.ANAR_BOMB);
+    // 3x3 surrounding cells = 9 cells
+    assert.strictEqual(blast.clearedCoords.length, 9);
+    assert.ok(blast.clearedCoords.some(c => c.r === 3 && c.c === 3));
+    assert.ok(blast.clearedCoords.some(c => c.r === 2 && c.c === 2));
+    assert.ok(blast.clearedCoords.some(c => c.r === 4 && c.c === 4));
+});
+
+// 12. Pillar 1: Direct Tap-to-Activate Chakra Row
+it('should detonate Chakra Row in place clearing full row', () => {
+    const grid = new Match3Grid(8, 8);
+    grid.initLevel(LEVEL_CONFIGS[0]);
+
+    grid.grid[4][2].gem = { id: 888, type: 2, special: SPECIAL_TYPES.CHAKRA_ROW };
+    const beam = grid.detonateSpecialInPlace(4, 2);
+
+    assert.ok(beam !== null);
+    assert.strictEqual(beam.specialType, SPECIAL_TYPES.CHAKRA_ROW);
+    assert.strictEqual(beam.clearedCoords.length, 8);
+    for (let c = 0; c < 8; c++) {
+        assert.ok(beam.clearedCoords.some(coord => coord.r === 4 && coord.c === c));
+    }
+});
+
+// 13. Pillar 1: Smart Obstacle Targeting for Peacock Sweep
+it('should smart-target the color with the most unlit Diyas or Marigolds', () => {
+    const grid = new Match3Grid(8, 8);
+    grid.initLevel(LEVEL_CONFIGS[0]);
+
+    // Place unlit Diyas under ruby gems (type 0)
+    for (let c = 0; c < 3; c++) {
+        grid.grid[1][c].gem = { id: 900 + c, type: 0, special: SPECIAL_TYPES.NORMAL };
+        grid.grid[1][c].diya = OBSTACLE_TYPES.DIYA_UNLIT;
+    }
+
+    const bestColor = grid.findBestColorForPeacockSweep();
+    assert.strictEqual(bestColor, 0); // Ruby (type 0) has highest obstacle score
+});
+
+// 14. Pillar 1: T/L Shape match creates Anar Bomb
+it('should identify T or L shape match intersections for Anar Bomb creation', () => {
+    const grid = new Match3Grid(8, 8);
+    grid.initLevel(LEVEL_CONFIGS[0]);
+
+    // Create a T-shape of type 1 (Topaz) at center (2, 2)
+    // Horizontal row 2: cols 1, 2, 3
+    grid.grid[2][1].gem = { id: 10, type: 1, special: SPECIAL_TYPES.NORMAL };
+    grid.grid[2][2].gem = { id: 11, type: 1, special: SPECIAL_TYPES.NORMAL };
+    grid.grid[2][3].gem = { id: 12, type: 1, special: SPECIAL_TYPES.NORMAL };
+    // Vertical col 2: rows 1, 2, 3
+    grid.grid[1][2].gem = { id: 13, type: 1, special: SPECIAL_TYPES.NORMAL };
+    grid.grid[3][2].gem = { id: 14, type: 1, special: SPECIAL_TYPES.NORMAL };
+
+    // Fill adjacent non-matching
+    grid.grid[2][0].gem = { id: 15, type: 3, special: SPECIAL_TYPES.NORMAL };
+    grid.grid[2][4].gem = { id: 16, type: 3, special: SPECIAL_TYPES.NORMAL };
+    grid.grid[0][2].gem = { id: 17, type: 3, special: SPECIAL_TYPES.NORMAL };
+    grid.grid[4][2].gem = { id: 18, type: 3, special: SPECIAL_TYPES.NORMAL };
+
+    const matches = grid.findMatches();
+    assert.ok(matches.tOrL.length >= 1);
+    assert.strictEqual(matches.tOrL[0].r, 2);
+    assert.strictEqual(matches.tOrL[0].c, 2);
+});
+
 console.log(`\nAll Engine Tests Completed: ${passedTests}/${totalTests} Passed!`);
 if (passedTests !== totalTests) {
     process.exit(1);

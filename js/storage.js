@@ -27,6 +27,7 @@ class StorageManager {
                 swap: 2           // Magic Silk Swapper
             },
             courtyardUnlocks: [], // Array of item IDs unlocked
+            winStreak: 0,         // Shringaar Blessing Win-Streak
             lastDailySpin: 0,
             spinStreak: 1,
             language: 'en',       // 'en' or 'hi'
@@ -142,7 +143,31 @@ class StorageManager {
 
         // Win Shagun Reward
         this.addCoins(stars * 20);
+
+        // Increment Shringaar Blessing Win-Streak
+        this.data.winStreak = (this.data.winStreak || 0) + 1;
         this.save();
+    }
+
+    resetWinStreak() {
+        this.data.winStreak = 0;
+        this.save();
+    }
+
+    getStreakTier() {
+        const streak = this.data.winStreak || 0;
+        if (streak >= 3) return 3;
+        if (streak === 2) return 2;
+        if (streak === 1) return 1;
+        return 0;
+    }
+
+    getStreakBonuses() {
+        const tier = this.getStreakTier();
+        if (tier === 1) return ['chakra'];
+        if (tier === 2) return ['chakra', 'anar'];
+        if (tier === 3) return ['mayur', 'chakra', 'anar'];
+        return [];
     }
 
     unlockCourtyardItem(itemId, starsCost) {

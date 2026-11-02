@@ -84,6 +84,32 @@ body, html {
     font-weight: 600;
 }
 
+.streak-chip {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(245, 158, 11, 0.4));
+    border: 1px solid #F59E0B;
+    color: #FDE047;
+    animation: flamePulse 1.8s infinite ease-in-out;
+}
+
+@keyframes flamePulse {
+    0%, 100% { box-shadow: 0 0 6px rgba(245, 158, 11, 0.4); transform: scale(1); }
+    50% { box-shadow: 0 0 14px rgba(239, 68, 68, 0.7); transform: scale(1.05); }
+}
+
+.streak-warning-card {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid #EF4444;
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin: 8px 0;
+    font-size: 13px;
+    color: #FCA5A5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+}
+
 .header-actions {
     display: flex;
     align-items: center;

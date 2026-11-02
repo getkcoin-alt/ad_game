@@ -123,6 +123,36 @@ it('should have 100% key parity between English and Hindi dictionaries', () => {
     });
 });
 
+// 8. Pillar 2: Shringaar Blessing Win-Streak Progression (Butler's Gift equivalent)
+it('should escalate Shringaar Blessing tiers and disburse appropriate starting bonuses', () => {
+    const sm = window.StorageManager;
+    sm.resetWinStreak();
+    assert.strictEqual(sm.getStreakTier(), 0);
+    assert.deepStrictEqual(sm.getStreakBonuses(), []);
+
+    // 1 win -> Tier 1 (+1 Chakra)
+    sm.recordLevelWin(1, 3, 2000);
+    assert.strictEqual(sm.data.winStreak, 1);
+    assert.strictEqual(sm.getStreakTier(), 1);
+    assert.deepStrictEqual(sm.getStreakBonuses(), ['chakra']);
+
+    // 2 wins -> Tier 2 (+1 Chakra +1 Anar)
+    sm.recordLevelWin(2, 3, 2500);
+    assert.strictEqual(sm.data.winStreak, 2);
+    assert.strictEqual(sm.getStreakTier(), 2);
+    assert.deepStrictEqual(sm.getStreakBonuses(), ['chakra', 'anar']);
+
+    // 3 wins -> Tier 3 (+1 Mayur +1 Chakra +1 Anar)
+    sm.recordLevelWin(3, 3, 3000);
+    assert.strictEqual(sm.data.winStreak, 3);
+    assert.strictEqual(sm.getStreakTier(), 3);
+    assert.deepStrictEqual(sm.getStreakBonuses(), ['mayur', 'chakra', 'anar']);
+
+    // Reset on surrender / unrecovered defeat
+    sm.resetWinStreak();
+    assert.strictEqual(sm.getStreakTier(), 0);
+});
+
 console.log(`\nEconomy & Psychology Tests Completed: ${passed}/${total} Passed!`);
 if (passed !== total) {
     process.exit(1);

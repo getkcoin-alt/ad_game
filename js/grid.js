@@ -176,13 +176,37 @@ class Match3Grid {
         return true;
     }
 
+    // Count remaining obstacles in row or col for smart targeting
+    countObstaclesInRow(r) {
+        if (r < 0 || r >= this.rows) return 0;
+        let count = 0;
+        for (let c = 0; c < this.cols; c++) {
+            const cell = this.grid[r][c];
+            if (cell.diya === OBSTACLE_TYPES.DIYA_UNLIT) count += 2;
+            if (cell.marigold > 0) count += cell.marigold;
+        }
+        return count;
+    }
+
+    countObstaclesInCol(c) {
+        if (c < 0 || c >= this.cols) return 0;
+        let count = 0;
+        for (let r = 0; r < this.rows; r++) {
+            const cell = this.grid[r][c];
+            if (cell.diya === OBSTACLE_TYPES.DIYA_UNLIT) count += 2;
+            if (cell.marigold > 0) count += cell.marigold;
+        }
+        return count;
+    }
+
     // Comprehensive Match Finding Algorithm (Horizontal, Vertical, T/L, Lines of 4 & 5)
     findMatches() {
         const matchedCells = new Set();
         const line4Horiz = [];
         const line4Vert = [];
         const line5Matches = [];
-        const tOrLShapeMatches = [];
+        const hRuns = [];
+        const vRuns = [];
 
         // 1. Horizontal scans
         for (let r = 0; r < this.rows; r++) {
@@ -201,6 +225,7 @@ class Match3Grid {
                             coords.push({ r, c: matchCol });
                             matchedCells.add(`${r},${matchCol}`);
                         }
+                        hRuns.push(coords);
                         if (run >= 5) {
                             line5Matches.push(coords);
                         } else if (run === 4) {
@@ -229,6 +254,7 @@ class Match3Grid {
                             coords.push({ r: matchRow, c });
                             matchedCells.add(`${matchRow},${c}`);
                         }
+                        vRuns.push(coords);
                         if (run >= 5) {
                             line5Matches.push(coords);
                         } else if (run === 4) {
@@ -239,6 +265,19 @@ class Match3Grid {
                 }
             }
         }
+
+        // 3. T and L shape detection (Anar Bomb creation)
+        const tOrLShapeMatches = [];
+        hRuns.forEach(hRun => {
+            vRuns.forEach(vRun => {
+                // Check if any cell is in both runs and matches type
+                hRun.forEach(hPt => {
+                    if (vRun.some(vPt => vPt.r === hPt.r && vPt.c === hPt.c)) {
+                        tOrLShapeMatches.push(hPt);
+                    }
+                });
+            });
+        });
 
         // Convert set to array of coordinates
         const result = [];
@@ -251,7 +290,8 @@ class Match3Grid {
             cells: result,
             line5: line5Matches,
             line4H: line4Horiz,
-            line4V: line4Vert
+            line4V: line4Vert,
+            tOrL: tOrLShapeMatches
         };
     }
 
@@ -370,27 +410,126 @@ class Match3Grid {
         return { clearedCoords, effects };
     }
 
-    // Trigger individual special gem power when matched
-    triggerSpecialAt(r, c, clearedSet, effectsList) {
-        const gem = this.grid[r][c]?.gem;
+    // Trigger individual special gem power when matched (with chaining)
+    triggerSpecialAt(r, c, clearedSet, effectsList, visitedSpecial = new Set()) {
+        const gem = this.grid[r]?.[c]?.gem;
         if (!gem || gem.special === SPECIAL_TYPES.NORMAL) return;
 
-        clearedSet.add(`${r},${c}`);
+        const key = `${r},${c}`;
+        if (visitedSpecial.has(key)) return;
+        visitedSpecial.add(key);
+
+        clearedSet.add(key);
 
         if (gem.special === SPECIAL_TYPES.CHAKRA_ROW) {
             for (let col = 0; col < this.cols; col++) {
                 clearedSet.add(`${r},${col}`);
+                const nextGem = this.grid[r][col]?.gem;
+                if (nextGem && nextGem.special !== SPECIAL_TYPES.NORMAL && !visitedSpecial.has(`${r},${col}`)) {
+                    this.triggerSpecialAt(r, col, clearedSet, effectsList, visitedSpecial);
+                }
             }
             effectsList.push({ type: 'CHAKRA_ROW', r, c });
         } else if (gem.special === SPECIAL_TYPES.CHAKRA_COL) {
             for (let row = 0; row < this.rows; row++) {
                 clearedSet.add(`${row},${c}`);
+                const nextGem = this.grid[row][c]?.gem;
+                if (nextGem && nextGem.special !== SPECIAL_TYPES.NORMAL && !visitedSpecial.has(`${row},${c}`)) {
+                    this.triggerSpecialAt(row, c, clearedSet, effectsList, visitedSpecial);
+                }
             }
             effectsList.push({ type: 'CHAKRA_COL', r, c });
         } else if (gem.special === SPECIAL_TYPES.ANAR_BOMB) {
-            this.triggerAnarBlast(r, c, clearedSet);
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    const tr = r + dr;
+                    const tc = c + dc;
+                    if (tr >= 0 && tr < this.rows && tc >= 0 && tc < this.cols) {
+                        clearedSet.add(`${tr},${tc}`);
+                        const nextGem = this.grid[tr][tc]?.gem;
+                        if (nextGem && nextGem.special !== SPECIAL_TYPES.NORMAL && !visitedSpecial.has(`${tr},${tc}`)) {
+                            this.triggerSpecialAt(tr, tc, clearedSet, effectsList, visitedSpecial);
+                        }
+                    }
+                }
+            }
             effectsList.push({ type: 'ANAR_BOMB', r, c });
+        } else if (gem.special === SPECIAL_TYPES.MAYUR_RAINBOW) {
+            const bestColor = this.findBestColorForPeacockSweep();
+            for (let row = 0; row < this.rows; row++) {
+                for (let col = 0; col < this.cols; col++) {
+                    if (this.grid[row][col]?.gem?.type === bestColor) {
+                        clearedSet.add(`${row},${col}`);
+                    }
+                }
+            }
+            effectsList.push({ type: 'PEACOCK_SWEEP', r, c, color: bestColor });
         }
+    }
+
+    // Evaluate which gem color has the most adjacent obstacles (Diyas & Marigolds)
+    findBestColorForPeacockSweep() {
+        const colorScores = [0, 0, 0, 0, 0, 0];
+        const colorCounts = [0, 0, 0, 0, 0, 0];
+
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+                const cell = this.grid[r][c];
+                if (!cell?.gem) continue;
+                const type = cell.gem.type;
+                if (type >= 0 && type < 6) {
+                    colorCounts[type]++;
+                    // Bonus if cell itself is unlit Diya
+                    if (cell.diya === OBSTACLE_TYPES.DIYA_UNLIT) colorScores[type] += 6;
+                    // Bonus if cell has Marigold
+                    if (cell.marigold > 0) colorScores[type] += 5;
+
+                    // Bonus for adjacent obstacles
+                    const adj = [
+                        { r: r - 1, c }, { r: r + 1, c },
+                        { r, c: c - 1 }, { r, c: c + 1 }
+                    ];
+                    for (const a of adj) {
+                        const nCell = this.get(a.r, a.c);
+                        if (nCell) {
+                            if (nCell.diya === OBSTACLE_TYPES.DIYA_UNLIT) colorScores[type] += 3;
+                            if (nCell.marigold > 0) colorScores[type] += 3;
+                        }
+                    }
+                }
+            }
+        }
+
+        let bestColor = 0;
+        let maxScore = -1;
+        for (let i = 0; i < 6; i++) {
+            const total = colorScores[i] + colorCounts[i];
+            if (total > maxScore) {
+                maxScore = total;
+                bestColor = i;
+            }
+        }
+        return bestColor;
+    }
+
+    // Direct Tap-to-Activate Special in place (Royal Match fluid mechanic)
+    detonateSpecialInPlace(r, c) {
+        const cell = this.get(r, c);
+        if (!cell || !cell.gem || cell.gem.special === SPECIAL_TYPES.NORMAL) return null;
+
+        const gem = cell.gem;
+        const cleared = new Set();
+        const effects = [];
+        const visited = new Set();
+
+        this.triggerSpecialAt(r, c, cleared, effects, visited);
+
+        const clearedCoords = Array.from(cleared).map(s => {
+            const [row, col] = s.split(',').map(Number);
+            return { r: row, c: col };
+        });
+
+        return { clearedCoords, effects, specialType: gem.special };
     }
 
     triggerAnarBlast(centerR, centerC, clearedSet) {

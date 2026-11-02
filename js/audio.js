@@ -330,6 +330,61 @@ class SoundEngine {
         });
     }
 
+    // Sparkler burst chime during Maha Utsav remaining move conversion
+    playSparklerBurst(index = 0) {
+        if (!this.soundEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const scaleIdx = (index % this.ragaScale.length);
+        const freq = this.ragaScale[scaleIdx];
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq * 1.5, now);
+        osc.frequency.exponentialRampToValueAtTime(freq * 2.0, now + 0.12);
+
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.24);
+
+        this.playGhungroo(0.6);
+    }
+
+    // Triumphant Maha Utsav opening fanfare
+    playFanfare() {
+        if (!this.soundEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99];
+        notes.forEach((freq, idx) => {
+            setTimeout(() => {
+                if (!this.ctx) return;
+                const cNow = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, cNow);
+                gain.gain.setValueAtTime(0.14, cNow);
+                gain.gain.exponentialRampToValueAtTime(0.001, cNow + 0.4);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(cNow);
+                osc.stop(cNow + 0.42);
+            }, idx * 70);
+        });
+    }
+
     // Ambient Meditative Tanpura Drone (Gentle Sa-Pa harmonic bed)
     startAmbient() {
         if (!this.musicEnabled || this.isAmbientPlaying) return;

@@ -423,6 +423,15 @@ class GameRenderer {
     drawSpecialAura(specialType, r) {
         const rot = this.globalTime * 2.5;
         this.ctx.save();
+
+        // Pulsing glow ring indicating "Tap to activate!" (Royal Match affordance)
+        const pulse = 1.0 + Math.sin(this.globalTime * 5) * 0.08;
+        this.ctx.strokeStyle = (specialType === SPECIAL_TYPES.MAYUR_RAINBOW) ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 215, 0, 0.85)';
+        this.ctx.lineWidth = 1.8;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, (r + 4) * pulse, 0, Math.PI * 2);
+        this.ctx.stroke();
+
         this.ctx.rotate(rot);
 
         if (specialType === SPECIAL_TYPES.MAYUR_RAINBOW) {
@@ -430,20 +439,20 @@ class GameRenderer {
             for (let i = 0; i < 6; i++) {
                 const a = (i * Math.PI) / 3;
                 this.ctx.strokeStyle = GEM_TYPES[i].color;
-                this.ctx.lineWidth = 2.5;
+                this.ctx.lineWidth = 2.8;
                 this.ctx.beginPath();
                 this.ctx.arc(0, 0, r + 2 + Math.sin(this.globalTime * 4 + i) * 2, a, a + 0.6);
                 this.ctx.stroke();
             }
         } else {
             // Golden spinning sunray aura
-            this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.7)';
-            this.ctx.lineWidth = 2;
+            this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.8)';
+            this.ctx.lineWidth = 2.2;
             for (let i = 0; i < 8; i++) {
                 const a = (i * Math.PI) / 4;
                 this.ctx.beginPath();
                 this.ctx.moveTo(Math.cos(a) * (r - 2), Math.sin(a) * (r - 2));
-                this.ctx.lineTo(Math.cos(a) * (r + 4), Math.sin(a) * (r + 4));
+                this.ctx.lineTo(Math.cos(a) * (r + 5), Math.sin(a) * (r + 5));
                 this.ctx.stroke();
             }
         }

@@ -119,12 +119,32 @@ class GameController {
                 return;
             }
 
-            // Tap-to-select / Tap-to-swap logic
+            // Tap-to-select / Tap-to-swap / Direct Special Detonation logic (Royal Match feel)
             if (!this.selectedCell) {
                 this.selectedCell = coords;
                 this.resetHint();
                 window.AudioEngine.playSitarPluck(coords.r);
+
+                // If user selected a special gem, show a friendly helper cue
+                const cell = this.grid.get(coords.r, coords.c);
+                if (cell?.gem && cell.gem.special !== SPECIAL_TYPES.NORMAL && this.renderer) {
+                    const cx = this.renderer.boardX + (coords.c * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                    const cy = this.renderer.boardY + (coords.r * this.renderer.cellSize);
+                    const msg = (this.currentLang === 'hi') ? "⚡ पुनः दबाकर फोड़ें!" : "⚡ Tap again to blast!";
+                    this.renderer.spawnFloatingText(cx, cy, msg, '#FDE047', 15);
+                }
             } else {
+                // If tapped the same cell and it's a special gem -> Direct Detonation!
+                if (this.selectedCell.r === coords.r && this.selectedCell.c === coords.c) {
+                    const cell = this.grid.get(coords.r, coords.c);
+                    if (cell?.gem && cell.gem.special !== SPECIAL_TYPES.NORMAL) {
+                        this.selectedCell = null;
+                        this.resetHint();
+                        this.activateSpecialDirectly(coords.r, coords.c);
+                        return;
+                    }
+                }
+
                 const dist = Math.abs(this.selectedCell.r - coords.r) + Math.abs(this.selectedCell.c - coords.c);
                 if (dist === 1) {
                     this.attemptSwap(this.selectedCell.r, this.selectedCell.c, coords.r, coords.c);
@@ -132,6 +152,14 @@ class GameController {
                 } else {
                     this.selectedCell = coords;
                     window.AudioEngine.playSitarPluck(coords.r);
+
+                    const cell = this.grid.get(coords.r, coords.c);
+                    if (cell?.gem && cell.gem.special !== SPECIAL_TYPES.NORMAL && this.renderer) {
+                        const cx = this.renderer.boardX + (coords.c * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                        const cy = this.renderer.boardY + (coords.r * this.renderer.cellSize);
+                        const msg = (this.currentLang === 'hi') ? "⚡ पुनः दबाकर फोड़ें!" : "⚡ Tap again to blast!";
+                        this.renderer.spawnFloatingText(cx, cy, msg, '#FDE047', 15);
+                    }
                 }
                 this.resetHint();
             }
@@ -265,6 +293,8 @@ class GameController {
             this.resumeGame();
         });
         document.getElementById('quit-btn')?.addEventListener('click', () => {
+            window.StorageManager.resetWinStreak();
+            this.updateHeaderUI();
             this.showScreen('menu-screen');
         });
 
@@ -276,6 +306,8 @@ class GameController {
             this.showScreen('menu-screen');
         });
         document.getElementById('fail-retry-btn')?.addEventListener('click', () => {
+            window.StorageManager.resetWinStreak();
+            this.updateHeaderUI();
             this.startLevel(this.currentLevelId);
         });
         document.getElementById('fail-ad-btn')?.addEventListener('click', () => {
@@ -346,6 +378,19 @@ class GameController {
         if (coinsEl) coinsEl.textContent = sm.data.coins;
         if (starsEl) starsEl.textContent = sm.data.stars;
 
+        // Pillar 2: Shringaar Blessing Streak Badge
+        const streakEl = document.getElementById('header-streak');
+        const streakChip = document.getElementById('streak-chip');
+        const winStreak = sm.data.winStreak || 0;
+        if (streakEl && streakChip) {
+            if (winStreak > 0) {
+                streakEl.textContent = winStreak;
+                streakChip.classList.remove('hidden');
+            } else {
+                streakChip.classList.add('hidden');
+            }
+        }
+
         const playCta = document.getElementById('play-cta-text');
         if (playCta) {
             const nextLvl = Math.min(sm.data.unlockedLevel || 1, LEVEL_CONFIGS.length);
@@ -407,6 +452,13 @@ class GameController {
         sm.deductLife();
         this.updateHeaderUI();
 
+        // Pillar 2: Shringaar Blessing starting bonuses (Butler's Gift equivalent)
+        const streakTier = sm.getStreakTier();
+        if (streakTier > 0) {
+            const bonuses = sm.getStreakBonuses();
+            this.spawnStreakBonuses(bonuses, streakTier);
+        }
+
         // Log analytics
         window.AnalyticsEngine.onLevelStart(config.id);
 
@@ -425,6 +477,59 @@ class GameController {
         });
 
         window.AudioEngine.playSwipe();
+    }
+
+    // Pillar 2: Disburse Shringaar Blessing specials onto the board
+    spawnStreakBonuses(bonuses, streakTier) {
+        const candidates = [];
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const cell = this.grid.get(r, c);
+                if (cell?.gem && cell.gem.special === SPECIAL_TYPES.NORMAL) {
+                    candidates.push({ r, c });
+                }
+            }
+        }
+
+        // Shuffle candidates randomly
+        for (let i = candidates.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const t = candidates[i];
+            candidates[i] = candidates[j];
+            candidates[j] = t;
+        }
+
+        let idx = 0;
+        bonuses.forEach(b => {
+            if (idx < candidates.length) {
+                const target = candidates[idx++];
+                const cell = this.grid.get(target.r, target.c);
+                if (b === 'mayur') cell.gem.special = SPECIAL_TYPES.MAYUR_RAINBOW;
+                else if (b === 'anar') cell.gem.special = SPECIAL_TYPES.ANAR_BOMB;
+                else cell.gem.special = (Math.random() > 0.5) ? SPECIAL_TYPES.CHAKRA_ROW : SPECIAL_TYPES.CHAKRA_COL;
+
+                if (this.renderer) {
+                    const cx = this.renderer.boardX + (target.c * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                    const cy = this.renderer.boardY + (target.r * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                    this.renderer.spawnGoldenEmbers(cx, cy, 18);
+                }
+            }
+        });
+
+        window.AudioEngine.playFanfare();
+        if (this.renderer) {
+            const toast = (this.currentLang === 'hi')
+                ? `🔥 श्रृंगार वरदान ${streakTier}! (+${bonuses.length} विशेष रत्न)`
+                : `🔥 Shringaar Blessing ${streakTier}! (+${bonuses.length} Free Specials)`;
+            this.renderer.spawnFloatingText(
+                this.renderer.width / 2,
+                this.renderer.boardY + 40,
+                toast,
+                '#FDE047',
+                18
+            );
+            this.renderer.addScreenShake(6);
+        }
     }
 
     updateInGameUI() {
@@ -468,6 +573,62 @@ class GameController {
         if (hCount) hCount.textContent = sm.data.boosters.hammer;
         if (aCount) aCount.textContent = sm.data.boosters.anar;
         if (sCount) sCount.textContent = sm.data.boosters.swap;
+    }
+
+    // Direct Tap-to-Activate Special (Royal Match Fluid UX)
+    activateSpecialDirectly(r, c) {
+        if (this.state !== 'PLAYING') return;
+
+        const cell = this.grid.get(r, c);
+        if (!cell || !cell.gem || cell.gem.special === SPECIAL_TYPES.NORMAL) return;
+
+        this.state = 'RESOLVING';
+        this.movesLeft--;
+        this.updateInGameUI();
+
+        const blast = this.grid.detonateSpecialInPlace(r, c);
+        if (!blast) {
+            this.state = 'PLAYING';
+            return;
+        }
+
+        // Distinctive audio & juiciness per special type
+        if (blast.specialType === SPECIAL_TYPES.ANAR_BOMB) {
+            window.AudioEngine.playAnarExplosion();
+            if (this.renderer) this.renderer.addScreenShake(12);
+        } else if (blast.specialType === SPECIAL_TYPES.MAYUR_RAINBOW) {
+            window.AudioEngine.playPeacockRainbow();
+            if (this.renderer) this.renderer.addScreenShake(14);
+        } else {
+            window.AudioEngine.playChakraBeam();
+            if (this.renderer) this.renderer.addScreenShake(8);
+        }
+
+        // Spawn gulal explosions & golden embers
+        blast.clearedCoords.forEach(({ r: cr, c: cc }) => {
+            const clrCell = this.grid.get(cr, cc);
+            if (clrCell?.gem && this.renderer) {
+                const def = GEM_TYPES[clrCell.gem.type];
+                const cx = this.renderer.boardX + (cc * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                const cy = this.renderer.boardY + (cr * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                this.renderer.spawnGulalExplosion(cx, cy, def.color, 12);
+                clrCell.gem = null;
+            }
+        });
+
+        // Award score
+        this.score += blast.clearedCoords.length * 120;
+        this.updateInGameUI();
+
+        // Process obstacle clears (Diyas & Marigolds)
+        this.processObstacleClears(blast.clearedCoords);
+
+        // Apply gravity and resolve cascading matches
+        setTimeout(() => {
+            this.grid.applyGravity();
+            this.grid.cascadeCount = 1;
+            setTimeout(() => this.resolveCascade(), 220);
+        }, 250);
     }
 
     attemptSwap(r1, c1, r2, c2) {
@@ -582,7 +743,7 @@ class GameController {
             window.AnalyticsEngine.onCascadeStreak(this.currentLevelId, cascadeMultiplier);
         }
 
-        // Identify special gem creations
+        // Identify special gem creations (Pillar 1: Smart Obstacle Targeting & Specials)
         const createdSpecials = new Map();
 
         // 5 in line -> Mayur Rainbow
@@ -591,19 +752,34 @@ class GameController {
             createdSpecials.set(`${center.r},${center.c}`, SPECIAL_TYPES.MAYUR_RAINBOW);
         });
 
-        // 4 in horizontal line -> Chakra Row
+        // T and L shape intersections -> Anar Bomb
+        if (matches.tOrL && Array.isArray(matches.tOrL)) {
+            matches.tOrL.forEach(pt => {
+                if (!createdSpecials.has(`${pt.r},${pt.c}`)) {
+                    createdSpecials.set(`${pt.r},${pt.c}`, SPECIAL_TYPES.ANAR_BOMB);
+                }
+            });
+        }
+
+        // 4 in horizontal line -> Smart Chakra (evaluates whether row or col has more obstacles)
         matches.line4H.forEach(line => {
             const center = line[1];
             if (!createdSpecials.has(`${center.r},${center.c}`)) {
-                createdSpecials.set(`${center.r},${center.c}`, SPECIAL_TYPES.CHAKRA_ROW);
+                const rowObs = this.grid.countObstaclesInRow(center.r);
+                const colObs = this.grid.countObstaclesInCol(center.c);
+                const type = (colObs > rowObs + 1) ? SPECIAL_TYPES.CHAKRA_COL : SPECIAL_TYPES.CHAKRA_ROW;
+                createdSpecials.set(`${center.r},${center.c}`, type);
             }
         });
 
-        // 4 in vertical line -> Chakra Col
+        // 4 in vertical line -> Smart Chakra (evaluates whether row or col has more obstacles)
         matches.line4V.forEach(line => {
             const center = line[1];
             if (!createdSpecials.has(`${center.r},${center.c}`)) {
-                createdSpecials.set(`${center.r},${center.c}`, SPECIAL_TYPES.CHAKRA_COL);
+                const rowObs = this.grid.countObstaclesInRow(center.r);
+                const colObs = this.grid.countObstaclesInCol(center.c);
+                const type = (rowObs > colObs + 1) ? SPECIAL_TYPES.CHAKRA_ROW : SPECIAL_TYPES.CHAKRA_COL;
+                createdSpecials.set(`${center.r},${center.c}`, type);
             }
         });
 
@@ -696,7 +872,11 @@ class GameController {
         }
 
         if (isWin) {
-            this.triggerLevelVictory();
+            if (this.movesLeft > 0) {
+                this.startMahaUtsavFinale();
+            } else {
+                this.triggerLevelVictory();
+            }
             return;
         }
 
@@ -721,6 +901,165 @@ class GameController {
                 '#FFD700',
                 22
             );
+        }
+    }
+
+    // Pillar 1: Maha Utsav Grand Finale (Royal Match Remaining Moves Cascade)
+    startMahaUtsavFinale() {
+        this.state = 'MAHA_UTSAV';
+        window.AudioEngine.playFanfare();
+
+        // Celebratory banner in center
+        if (this.renderer) {
+            const title = (this.currentLang === 'hi') ? "🎆 महा उत्सव! 🎆" : "🎆 MAHA UTSAV! 🎆";
+            this.renderer.spawnFloatingText(
+                this.renderer.width / 2,
+                this.renderer.boardY + (this.renderer.boardSize / 2) - 20,
+                title,
+                '#FFD700',
+                30
+            );
+            this.renderer.addScreenShake(8);
+        }
+
+        let moveIndex = 0;
+
+        const convertStep = () => {
+            if (this.movesLeft <= 0) {
+                // All remaining moves turned into specials! Ignite the finale!
+                setTimeout(() => this.igniteMahaUtsavSpecials(), 300);
+                return;
+            }
+
+            this.movesLeft--;
+            moveIndex++;
+            this.score += 250;
+            this.updateInGameUI();
+
+            // Find all normal gems eligible for promotion
+            const candidateCells = [];
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const gem = this.grid.get(r, c)?.gem;
+                    if (gem && gem.special === SPECIAL_TYPES.NORMAL) {
+                        candidateCells.push({ r, c });
+                    }
+                }
+            }
+
+            if (candidateCells.length > 0) {
+                const target = candidateCells[Math.floor(Math.random() * candidateCells.length)];
+                const chosenCell = this.grid.get(target.r, target.c);
+                if (chosenCell && chosenCell.gem) {
+                    const rand = Math.random();
+                    if (rand < 0.45) chosenCell.gem.special = SPECIAL_TYPES.CHAKRA_ROW;
+                    else if (rand < 0.85) chosenCell.gem.special = SPECIAL_TYPES.CHAKRA_COL;
+                    else chosenCell.gem.special = SPECIAL_TYPES.ANAR_BOMB;
+
+                    if (this.renderer) {
+                        const cx = this.renderer.boardX + (target.c * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                        const cy = this.renderer.boardY + (target.r * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                        this.renderer.spawnGoldenEmbers(cx, cy, 16);
+                    }
+                    window.AudioEngine.playSparklerBurst(moveIndex);
+                }
+            }
+
+            setTimeout(convertStep, 120);
+        };
+
+        setTimeout(convertStep, 250);
+    }
+
+    igniteMahaUtsavSpecials() {
+        // Collect all specials currently on the board
+        const specials = [];
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const gem = this.grid.get(r, c)?.gem;
+                if (gem && gem.special !== SPECIAL_TYPES.NORMAL) {
+                    specials.push({ r, c });
+                }
+            }
+        }
+
+        if (specials.length === 0) {
+            setTimeout(() => this.triggerLevelVictory(), 400);
+            return;
+        }
+
+        // Detonate first special, allowing chain reactions to propagate
+        const first = specials[0];
+        const blast = this.grid.detonateSpecialInPlace(first.r, first.c);
+        if (blast) {
+            window.AudioEngine.playAnarExplosion();
+            if (this.renderer) this.renderer.addScreenShake(12);
+
+            blast.clearedCoords.forEach(({ r, c }) => {
+                const cell = this.grid.get(r, c);
+                if (cell?.gem && this.renderer) {
+                    const def = GEM_TYPES[cell.gem.type];
+                    const cx = this.renderer.boardX + (c * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                    const cy = this.renderer.boardY + (r * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                    this.renderer.spawnGulalExplosion(cx, cy, def.color, 12);
+                    cell.gem = null;
+                }
+            });
+
+            this.score += blast.clearedCoords.length * 150;
+            this.updateInGameUI();
+            this.processObstacleClears(blast.clearedCoords);
+
+            setTimeout(() => {
+                this.grid.applyGravity();
+                this.grid.cascadeCount = 1;
+                this.resolveMahaUtsavCascade();
+            }, 240);
+        } else {
+            setTimeout(() => this.triggerLevelVictory(), 400);
+        }
+    }
+
+    resolveMahaUtsavCascade() {
+        const matches = this.grid.findMatches();
+        let remainingSpecials = [];
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                if (this.grid.get(r, c)?.gem?.special !== SPECIAL_TYPES.NORMAL) {
+                    remainingSpecials.push({ r, c });
+                }
+            }
+        }
+
+        if (matches.cells.length === 0 && remainingSpecials.length === 0) {
+            setTimeout(() => this.triggerLevelVictory(), 550);
+            return;
+        }
+
+        if (matches.cells.length > 0) {
+            this.grid.cascadeCount++;
+            window.AudioEngine.playCascade(this.grid.cascadeCount);
+
+            matches.cells.forEach(({ r, c }) => {
+                const cell = this.grid.get(r, c);
+                if (!cell?.gem) return;
+                const def = GEM_TYPES[cell.gem.type];
+                const cx = this.renderer.boardX + (c * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                const cy = this.renderer.boardY + (r * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                this.renderer.spawnGulalExplosion(cx, cy, def.color, 10);
+                cell.gem = null;
+            });
+
+            this.score += matches.cells.length * 80 * this.grid.cascadeCount;
+            this.updateInGameUI();
+            this.processObstacleClears(matches.cells);
+
+            setTimeout(() => {
+                this.grid.applyGravity();
+                setTimeout(() => this.resolveMahaUtsavCascade(), 200);
+            }, 200);
+        } else if (remainingSpecials.length > 0) {
+            setTimeout(() => this.igniteMahaUtsavSpecials(), 200);
         }
     }
 
@@ -766,10 +1105,38 @@ class GameController {
 
         const failModal = document.getElementById('fail-modal');
         const failSub = document.getElementById('fail-subtitle');
+        const streakWarning = document.getElementById('fail-streak-warning');
+        const streakText = document.getElementById('fail-streak-text');
+        const adBtn = document.getElementById('fail-ad-btn');
+        const t = window.I18N[this.currentLang] || window.I18N.en;
 
         if (failSub) {
-            const t = window.I18N[this.currentLang] || window.I18N.en;
             failSub.textContent = t.levelFailedSub;
+        }
+
+        // Pillar 2: Loss aversion warning if active streak is at risk
+        const sm = window.StorageManager;
+        const winStreak = sm.data.winStreak || 0;
+
+        if (winStreak > 0) {
+            if (streakWarning) streakWarning.classList.remove('hidden');
+            if (streakText) {
+                streakText.textContent = (this.currentLang === 'hi')
+                    ? `⚠️ ${winStreak} स्तर का वरदान टूटने से बचाएं!`
+                    : `⚠️ Save your ${winStreak}-win Shringaar Blessing streak!`;
+            }
+            if (adBtn) {
+                const label = adBtn.querySelector('span:nth-child(2)');
+                if (label) label.textContent = (this.currentLang === 'hi')
+                    ? `✨ वरदान बचाएं (+३ चालें)`
+                    : `✨ Save ${winStreak}-Win Streak (+3 Moves)`;
+            }
+        } else {
+            if (streakWarning) streakWarning.classList.add('hidden');
+            if (adBtn) {
+                const label = adBtn.querySelector('span:nth-child(2)');
+                if (label) label.textContent = t.watchAdMoves;
+            }
         }
 
         if (failModal) {
@@ -1013,3 +1380,4 @@ class GameController {
 }
 
 window.GameController = new GameController();
+window.game = window.GameController;

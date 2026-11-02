@@ -314,7 +314,10 @@ const I18N = {
         adNotice: "Thank you for supporting our game! Reward will be granted.",
         adCountdown: "Reward in",
         adClaim: "Claim +3 Extra Moves!",
-        adClaimReward: "Claim Reward!"
+        adClaimReward: "Claim Reward!",
+        shringaarStreak: "Shringaar Blessing",
+        streakAtRisk: "Win-Streak at risk! Save your blessing:",
+        saveStreak: "Save Streak (+3 Moves)"
     },
     hi: {
         gameTitle: "रंगोली उत्सव",
@@ -367,7 +370,10 @@ const I18N = {
         adNotice: "हमारे खेल का समर्थन करने के लिए धन्यवाद! आपका उपहार तैयार है।",
         adCountdown: "उपहार मिलेगा",
         adClaim: "+३ अतिरिक्त चालें लें!",
-        adClaimReward: "उपहार प्राप्त करें!"
+        adClaimReward: "उपहार प्राप्त करें!",
+        shringaarStreak: "श्रृंगार वरदान",
+        streakAtRisk: "वरदान खतरे में है! अपना वरदान बचाएं:",
+        saveStreak: "वरदान बचाएं (+३ चालें)"
     }
 };
 
