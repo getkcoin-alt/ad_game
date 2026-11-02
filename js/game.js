@@ -4,6 +4,53 @@
  * Haveli Courtyard metagame, and monetization systems.
  */
 
+/**
+ * Pillar 4: Tactile Android Haptic Engine
+ * Provides tuned vibration curves via navigator.vibrate for tactile mobile physical realism.
+ */
+class HapticEngine {
+    static isSupported() {
+        return typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
+    }
+
+    static lightTap() {
+        if (this.isSupported()) {
+            try { navigator.vibrate(12); } catch (e) {}
+        }
+    }
+
+    static matchPulse() {
+        if (this.isSupported()) {
+            try { navigator.vibrate([18, 25, 18]); } catch (e) {}
+        }
+    }
+
+    static specialCreated() {
+        if (this.isSupported()) {
+            try { navigator.vibrate([30, 40, 45]); } catch (e) {}
+        }
+    }
+
+    static explosion() {
+        if (this.isSupported()) {
+            try { navigator.vibrate([45, 30, 75]); } catch (e) {}
+        }
+    }
+
+    static wobble() {
+        if (this.isSupported()) {
+            try { navigator.vibrate([25, 20, 25]); } catch (e) {}
+        }
+    }
+
+    static victoryFanfare() {
+        if (this.isSupported()) {
+            try { navigator.vibrate([30, 40, 30, 40, 70]); } catch (e) {}
+        }
+    }
+}
+window.HapticEngine = HapticEngine;
+
 class GameController {
     constructor() {
         this.grid = new Match3Grid(8, 8);
@@ -124,6 +171,7 @@ class GameController {
                 this.selectedCell = coords;
                 this.resetHint();
                 window.AudioEngine.playSitarPluck(coords.r);
+                HapticEngine.lightTap();
 
                 // If user selected a special gem, show a friendly helper cue
                 const cell = this.grid.get(coords.r, coords.c);
@@ -152,6 +200,7 @@ class GameController {
                 } else {
                     this.selectedCell = coords;
                     window.AudioEngine.playSitarPluck(coords.r);
+                    HapticEngine.lightTap();
 
                     const cell = this.grid.get(coords.r, coords.c);
                     if (cell?.gem && cell.gem.special !== SPECIAL_TYPES.NORMAL && this.renderer) {
@@ -389,6 +438,7 @@ class GameController {
 
         if (screenId === 'menu-screen') {
             this.state = 'MENU';
+            window.AudioEngine.setPausedFilter(false);
             this.renderLevelSelectGrid();
             this.updateHeaderUI();
         } else if (screenId === 'courtyard-screen') {
@@ -634,15 +684,31 @@ class GameController {
         }
 
         // Distinctive audio & juiciness per special type
+        HapticEngine.explosion();
         if (blast.specialType === SPECIAL_TYPES.ANAR_BOMB) {
             window.AudioEngine.playAnarExplosion();
-            if (this.renderer) this.renderer.addScreenShake(12);
+            if (this.renderer) {
+                this.renderer.addScreenShake(12);
+                const scx = this.renderer.boardX + (c * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                const scy = this.renderer.boardY + (r * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                this.renderer.spawnShockwave(scx, scy, '#FF6B00', 110);
+            }
         } else if (blast.specialType === SPECIAL_TYPES.MAYUR_RAINBOW) {
             window.AudioEngine.playPeacockRainbow();
-            if (this.renderer) this.renderer.addScreenShake(14);
+            if (this.renderer) {
+                this.renderer.addScreenShake(14);
+                const scx = this.renderer.boardX + (c * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                const scy = this.renderer.boardY + (r * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                this.renderer.spawnShockwave(scx, scy, '#00E5FF', 140);
+            }
         } else {
             window.AudioEngine.playChakraBeam();
-            if (this.renderer) this.renderer.addScreenShake(8);
+            if (this.renderer) {
+                this.renderer.addScreenShake(8);
+                const scx = this.renderer.boardX + (c * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                const scy = this.renderer.boardY + (r * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                this.renderer.spawnShockwave(scx, scy, '#FFD700', 95);
+            }
         }
 
         // Spawn gulal explosions & golden embers
@@ -674,8 +740,9 @@ class GameController {
 
     attemptSwap(r1, c1, r2, c2) {
         if (!this.grid.canSwap(r1, c1, r2, c2)) {
-            // Invalid swap: visual wobble and bounce-back feedback
+            // Invalid swap: visual wobble and tactile haptic feedback
             window.AudioEngine.playSwipe();
+            HapticEngine.wobble();
             const cell1 = this.grid.get(r1, c1);
             const cell2 = this.grid.get(r2, c2);
             if (cell1?.gem && cell2?.gem) {
@@ -711,9 +778,10 @@ class GameController {
             return;
         }
 
-        // Standard Swap
+        // Standard Swap with tactile click
         this.grid.swap(r1, c1, r2, c2);
         window.AudioEngine.playSitarPluck(r2);
+        HapticEngine.lightTap();
 
         // Trigger cascade resolution
         this.grid.cascadeCount = 0;
@@ -722,7 +790,16 @@ class GameController {
 
     resolveSpecialCombo(comboResult) {
         window.AudioEngine.playPeacockRainbow();
-        if (this.renderer) this.renderer.addScreenShake(12);
+        HapticEngine.explosion();
+        if (this.renderer) {
+            this.renderer.addScreenShake(12);
+            if (comboResult.clearedCoords.length > 0) {
+                const firstCoord = comboResult.clearedCoords[0];
+                const scx = this.renderer.boardX + (firstCoord.c * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                const scy = this.renderer.boardY + (firstCoord.r * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                this.renderer.spawnShockwave(scx, scy, '#F43F5E', 130);
+            }
+        }
 
         // Clear matched pieces
         comboResult.clearedCoords.forEach(({ r, c }) => {
@@ -763,8 +840,9 @@ class GameController {
         this.grid.cascadeCount++;
         const cascadeMultiplier = this.grid.cascadeCount;
 
-        // Sound feedback climbing Raga Bhupali pentatonic scale!
+        // Sound feedback climbing Raga Bhupali pentatonic scale and tactile match pulse
         window.AudioEngine.playCascade(cascadeMultiplier);
+        HapticEngine.matchPulse();
 
         // Floating accolades for deep cascades
         if (cascadeMultiplier >= 3 && this.renderer) {
@@ -843,11 +921,14 @@ class GameController {
                 const effectsList = [];
                 this.grid.triggerSpecialAt(r, c, clearedSet, effectsList);
 
+                HapticEngine.explosion();
                 if (cell.gem.special === SPECIAL_TYPES.ANAR_BOMB) {
                     window.AudioEngine.playAnarExplosion();
                     this.renderer.spawnGoldenEmbers(cx, cy, 20);
+                    this.renderer.spawnShockwave(cx, cy, '#FF6B00', 105);
                 } else {
                     window.AudioEngine.playChakraBeam();
+                    this.renderer.spawnShockwave(cx, cy, '#FFD700', 90);
                 }
             }
 
@@ -855,6 +936,7 @@ class GameController {
             const key = `${r},${c}`;
             if (createdSpecials.has(key)) {
                 cell.gem.special = createdSpecials.get(key);
+                HapticEngine.specialCreated();
                 window.AnalyticsEngine.onSpecialCreated(cell.gem.special, this.currentLevelId);
             } else {
                 cell.gem = null;
@@ -945,10 +1027,14 @@ class GameController {
         }
     }
 
-    // Pillar 1: Maha Utsav Grand Finale (Royal Match Remaining Moves Cascade)
+    // Pillar 1 & 4: Maha Utsav Grand Finale (Royal Match Remaining Moves Cascade & Confetti)
     startMahaUtsavFinale() {
         this.state = 'MAHA_UTSAV';
         window.AudioEngine.playFanfare();
+        HapticEngine.victoryFanfare();
+        if (this.renderer) {
+            this.renderer.spawnConfettiRain(40);
+        }
 
         // Celebratory banner in center
         if (this.renderer) {
@@ -1107,6 +1193,12 @@ class GameController {
     triggerLevelVictory() {
         this.state = 'WIN';
         window.AudioEngine.playLevelVictory();
+        HapticEngine.victoryFanfare();
+
+        // Pillar 4: Celebratory Confetti Rain
+        if (this.renderer) {
+            this.renderer.spawnConfettiRain(70);
+        }
 
         // Calculate 1 to 3 stars based on score & remaining moves
         let stars = 1;
@@ -1254,6 +1346,8 @@ class GameController {
             }
             this.grid.checkAndDamageCell(r, c, [], [], new Set());
             window.AudioEngine.playAnarExplosion();
+            HapticEngine.explosion();
+            this.renderer.spawnShockwave(cx, cy, '#FFD700', 95);
             this.renderer.addScreenShake(8);
             this.activeBooster = null;
             this.updateInGameUI();
@@ -1269,6 +1363,8 @@ class GameController {
             const clearedSet = new Set();
             this.grid.triggerAnarBlast(r, c, clearedSet);
             window.AudioEngine.playAnarExplosion();
+            HapticEngine.explosion();
+            this.renderer.spawnShockwave(cx, cy, '#FF6B00', 120);
             this.renderer.spawnGoldenEmbers(cx, cy, 28);
             this.renderer.addScreenShake(12);
 
@@ -1291,10 +1387,12 @@ class GameController {
             if (!this.swapFirstCell) {
                 this.swapFirstCell = { r, c };
                 window.AudioEngine.playSitarPluck(r);
+                HapticEngine.lightTap();
             } else {
                 sm.useBooster('swap');
                 this.grid.swap(this.swapFirstCell.r, this.swapFirstCell.c, r, c);
                 window.AudioEngine.playSwipe();
+                HapticEngine.lightTap();
                 this.swapFirstCell = null;
                 this.activeBooster = null;
                 this.updateInGameUI();
@@ -1307,12 +1405,14 @@ class GameController {
 
     pauseGame() {
         this.state = 'PAUSED';
+        window.AudioEngine.setPausedFilter(true);
         document.getElementById('pause-modal')?.classList.remove('hidden');
         document.getElementById('pause-modal')?.classList.add('flex');
     }
 
     resumeGame() {
         this.state = 'PLAYING';
+        window.AudioEngine.setPausedFilter(false);
         document.getElementById('pause-modal')?.classList.add('hidden');
     }
 

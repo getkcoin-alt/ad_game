@@ -22,6 +22,7 @@ class GameRenderer {
         // Particle System
         this.particles = [];
         this.floatingTexts = [];
+        this.shockwaves = [];
         this.screenShake = 0;
         this.globalTime = 0;
 
@@ -124,7 +125,40 @@ class GameRenderer {
         }
     }
 
-    // Add floating accolade or score text
+    // Pillar 4: Shockwave Distortion Rings
+    spawnShockwave(x, y, color = '#FFD700', maxRadius = 90) {
+        this.shockwaves.push({
+            x, y,
+            radius: 8,
+            maxRadius,
+            color,
+            alpha: 1.0,
+            lineWidth: 5
+        });
+    }
+
+    // Pillar 4: Celebratory Confetti Rain for Victory Fanfares
+    spawnConfettiRain(count = 70) {
+        const colors = ['#FF1493', '#FFD700', '#00CED1', '#32CD32', '#FF4500', '#9370DB', '#F59E0B'];
+        for (let i = 0; i < count; i++) {
+            this.particles.push({
+                x: Math.random() * this.width,
+                y: -10 - Math.random() * 80,
+                vx: (Math.random() - 0.5) * 3.0,
+                vy: 2.2 + Math.random() * 3.8,
+                rot: Math.random() * Math.PI * 2,
+                vrot: (Math.random() - 0.5) * 0.16,
+                w: 6 + Math.random() * 6,
+                h: 10 + Math.random() * 8,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                alpha: 1.0,
+                decay: 0.007 + Math.random() * 0.006,
+                type: 'confetti'
+            });
+        }
+    }
+
+    // Add floating accolade or score text with tactile spring scale pop
     spawnFloatingText(x, y, text, color = '#FFD700', size = 20) {
         this.floatingTexts.push({
             x, y,
@@ -133,7 +167,8 @@ class GameRenderer {
             size,
             alpha: 1.0,
             vy: -1.8,
-            life: 1.0
+            life: 1.0,
+            frame: 0
         });
     }
 
@@ -151,8 +186,8 @@ class GameRenderer {
             this.screenShake *= 0.88;
         }
 
-        // Draw Haveli decorative board border & background
-        this.drawBoardBackground();
+        // Draw Haveli decorative board border, background & Diya ambient festival glow
+        this.drawBoardBackground(grid);
 
         // Draw Under-Tile Obstacles (Diyas)
         this.drawDiyas(grid);
@@ -168,8 +203,11 @@ class GameRenderer {
         // Draw Over-Tile Obstacles (Marigold blooms)
         this.drawMarigolds(grid);
 
-        // Draw Particles
+        // Draw Particles & Confetti
         this.updateAndDrawParticles();
+
+        // Draw Shockwaves
+        this.updateAndDrawShockwaves();
 
         // Draw Floating Accolades
         this.updateAndDrawFloatingTexts();
@@ -210,10 +248,28 @@ class GameRenderer {
         this.ctx.restore();
     }
 
-    drawBoardBackground() {
+    drawBoardBackground(grid) {
         const bx = this.boardX;
         const by = this.boardY;
         const bs = this.boardSize;
+
+        // Pillar 4: Screen-Edge Festival Diya Ambient Glow that intensifies as Diyas are lit
+        if (grid && grid.totalDiyasCount > 0 && grid.litDiyasCount > 0) {
+            const litRatio = Math.min(1.0, grid.litDiyasCount / grid.totalDiyasCount);
+            const cx = bx + (bs / 2);
+            const cy = by + (bs / 2);
+            const maxR = Math.max(this.width, this.height) * 0.85;
+            const pulse = 0.85 + Math.sin(this.globalTime * 3.5) * 0.15;
+
+            this.ctx.save();
+            const ambGrad = this.ctx.createRadialGradient(cx, cy, bs * 0.4, cx, cy, maxR);
+            ambGrad.addColorStop(0, 'rgba(255, 180, 50, 0)');
+            ambGrad.addColorStop(0.6, `rgba(245, 158, 11, ${0.08 * litRatio * pulse})`);
+            ambGrad.addColorStop(1, `rgba(217, 119, 6, ${0.24 * litRatio * pulse})`);
+            this.ctx.fillStyle = ambGrad;
+            this.ctx.fillRect(0, 0, this.width, this.height);
+            this.ctx.restore();
+        }
 
         // Shadow & glow
         this.ctx.save();
@@ -324,6 +380,7 @@ class GameRenderer {
                 if (!cell || !cell.gem) continue;
 
                 const gem = cell.gem;
+                const prevAnimY = gem.animY || 0;
                 
                 // Interpolate animation offsets
                 gem.animX *= 0.72;
@@ -331,23 +388,44 @@ class GameRenderer {
                 if (Math.abs(gem.animX) < 0.01) gem.animX = 0;
                 if (Math.abs(gem.animY) < 0.01) gem.animY = 0;
 
+                // Pillar 4: Squash & Stretch Gem Drop Landing Physics
+                if (typeof gem.squashTimer === 'undefined') gem.squashTimer = 0;
+                if (Math.abs(prevAnimY) > 0.08 && Math.abs(gem.animY) <= 0.08) {
+                    gem.squashTimer = 1.0;
+                }
+
+                let scaleX = 1.0;
+                let scaleY = 1.0;
+                if (gem.squashTimer > 0) {
+                    gem.squashTimer -= 0.12;
+                    if (gem.squashTimer < 0) gem.squashTimer = 0;
+                    const wave = Math.sin((1.0 - gem.squashTimer) * Math.PI);
+                    scaleX = 1.0 + (wave * 0.20);
+                    scaleY = 1.0 - (wave * 0.18);
+                }
+
                 const cx = bx + (c * cs) + (cs / 2) + (gem.animX * cs);
                 const cy = by + (r * cs) + (cs / 2) + (gem.animY * cs);
 
                 const isSelected = selectedCell && selectedCell.r === r && selectedCell.c === c;
                 const isHint = hintMove && hintMove.some(h => h.r === r && h.c === c);
 
-                this.drawSingleGem(cx, cy, cs * 0.82, gem, isSelected, isHint);
+                this.drawSingleGem(cx, cy, cs * 0.82, gem, isSelected, isHint, scaleX, scaleY);
             }
         }
     }
 
-    drawSingleGem(cx, cy, size, gem, isSelected, isHint) {
+    drawSingleGem(cx, cy, size, gem, isSelected, isHint, scaleX = 1.0, scaleY = 1.0) {
         const def = GEM_TYPES[gem.type] || GEM_TYPES[0];
         const r = size / 2;
 
         this.ctx.save();
         this.ctx.translate(cx, cy);
+
+        // Pillar 4: Apply Squash & Stretch deformation
+        if (scaleX !== 1.0 || scaleY !== 1.0) {
+            this.ctx.scale(scaleX, scaleY);
+        }
 
         // Selection highlight ring
         if (isSelected) {
@@ -787,6 +865,10 @@ class GameRenderer {
             } else if (p.type === 'spark') {
                 p.vx *= 0.95;
                 p.vy += 0.08;
+            } else if (p.type === 'confetti') {
+                p.rot += p.vrot;
+                p.x += Math.sin(this.globalTime * 4 + p.y * 0.05) * 0.7;
+                p.vy *= 0.99;
             }
 
             if (p.alpha <= 0) {
@@ -804,6 +886,10 @@ class GameRenderer {
                 this.ctx.beginPath();
                 this.ctx.ellipse(0, 0, p.size, p.size * 0.5, 0, 0, Math.PI * 2);
                 this.ctx.fill();
+            } else if (p.type === 'confetti') {
+                this.ctx.translate(p.x, p.y);
+                this.ctx.rotate(p.rot);
+                this.ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
             } else {
                 this.ctx.beginPath();
                 this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
@@ -814,9 +900,37 @@ class GameRenderer {
         }
     }
 
+    // Pillar 4: Shockwave ring expansion & fade
+    updateAndDrawShockwaves() {
+        for (let i = this.shockwaves.length - 1; i >= 0; i--) {
+            const sw = this.shockwaves[i];
+            sw.radius += (sw.maxRadius - sw.radius) * 0.18 + 1.8;
+            sw.alpha -= 0.045;
+            sw.lineWidth = Math.max(1, 5 * sw.alpha);
+
+            if (sw.alpha <= 0 || sw.radius >= sw.maxRadius) {
+                this.shockwaves.splice(i, 1);
+                continue;
+            }
+
+            this.ctx.save();
+            this.ctx.globalAlpha = Math.max(sw.alpha, 0);
+            this.ctx.strokeStyle = sw.color;
+            this.ctx.lineWidth = sw.lineWidth;
+            this.ctx.shadowColor = sw.color;
+            this.ctx.shadowBlur = 10;
+            this.ctx.beginPath();
+            this.ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+            this.ctx.stroke();
+            this.ctx.restore();
+        }
+    }
+
+    // Pillar 4: Spring Scale Pop Floating Text Accolades (0.4 -> 1.35 -> 1.0)
     updateAndDrawFloatingTexts() {
         for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
             const ft = this.floatingTexts[i];
+            ft.frame = (ft.frame || 0) + 1;
             ft.y += ft.vy;
             ft.alpha -= 0.022;
 
@@ -825,14 +939,26 @@ class GameRenderer {
                 continue;
             }
 
+            // Tactile Spring Scale Pop
+            let scale = 1.0;
+            if (ft.frame <= 8) {
+                const t = ft.frame / 8;
+                scale = 0.4 + (1.35 - 0.4) * (1 - Math.pow(1 - t, 2));
+            } else if (ft.frame <= 16) {
+                const t = (ft.frame - 8) / 8;
+                scale = 1.35 - (0.35 * t);
+            }
+
             this.ctx.save();
+            this.ctx.translate(ft.x, ft.y);
+            this.ctx.scale(scale, scale);
             this.ctx.globalAlpha = Math.max(ft.alpha, 0);
             this.ctx.fillStyle = ft.color;
             this.ctx.font = `bold ${ft.size}px 'Cinzel Decorative', 'Yatra One', serif, sans-serif`;
             this.ctx.textAlign = 'center';
-            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-            this.ctx.shadowBlur = 6;
-            this.ctx.fillText(ft.text, ft.x, ft.y);
+            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+            this.ctx.shadowBlur = 8;
+            this.ctx.fillText(ft.text, 0, 0);
             this.ctx.restore();
         }
     }

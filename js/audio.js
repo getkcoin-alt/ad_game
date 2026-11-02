@@ -13,6 +13,9 @@ class SoundEngine {
         this.ambientGain = null;
         this.isAmbientPlaying = false;
         this.ambientOscillators = [];
+        this.masterFilter = null;
+        this.masterGain = null;
+        this.isFilterPaused = false;
         
         // Raga Bhupali pentatonic scale frequencies (Sa, Re, Ga, Pa, Dha, Sa')
         // Pentatonic scales are deeply rooted in Indian classical aesthetics and universally relaxing.
@@ -40,6 +43,50 @@ class SoundEngine {
         }
         if (this.ctx && this.ctx.state === 'suspended') {
             this.ctx.resume();
+        }
+        this.ensureMasterPipeline();
+    }
+
+    ensureMasterPipeline() {
+        if (!this.ctx) return;
+        if (!this.masterFilter) {
+            try {
+                this.masterFilter = this.ctx.createBiquadFilter();
+                this.masterFilter.type = 'lowpass';
+                this.masterFilter.frequency.setValueAtTime(22000, this.ctx.currentTime);
+
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.setValueAtTime(1.0, this.ctx.currentTime);
+
+                this.masterFilter.connect(this.masterGain);
+                this.masterGain.connect(this.ctx.destination);
+            } catch (e) {
+                console.warn('Master audio filter setup warning:', e);
+            }
+        }
+    }
+
+    getDestination() {
+        this.ensureMasterPipeline();
+        return this.masterFilter || (this.ctx ? this.ctx.destination : null);
+    }
+
+    // Pillar 4: Web Audio Master Low-Pass Filter on Pause (22kHz -> 420Hz)
+    setPausedFilter(isPaused) {
+        this.isFilterPaused = isPaused;
+        if (!this.ctx) return;
+        this.ensureMasterPipeline();
+        if (!this.masterFilter) return;
+
+        try {
+            const now = this.ctx.currentTime;
+            const targetFreq = isPaused ? 420 : 22000;
+            this.targetFilterFreq = targetFreq;
+            this.masterFilter.frequency.cancelScheduledValues(now);
+            this.masterFilter.frequency.setValueAtTime(this.masterFilter.frequency.value || 22000, now);
+            this.masterFilter.frequency.exponentialRampToValueAtTime(targetFreq, now + 0.25);
+        } catch (e) {
+            console.warn('Filter transition error:', e);
         }
     }
 
@@ -76,7 +123,7 @@ class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
 
         osc.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.getDestination());
 
         osc.start(now);
         osc.stop(now + 0.08);
@@ -104,21 +151,23 @@ class SoundEngine {
             gain.gain.exponentialRampToValueAtTime(0.0005, now + 0.12 + (idx * 0.015));
 
             osc.connect(gain);
-            gain.connect(this.ctx.destination);
+            gain.connect(this.getDestination());
 
             osc.start(now + (idx * 0.008));
             osc.stop(now + 0.18);
         });
     }
 
-    // Synthesize Sitar Pluck for deliberate user moves
+    // Synthesize Sitar Pluck for deliberate user moves with micro-pitch acoustic jitter
     playSitarPluck(noteIndex = 0) {
         if (!this.soundEnabled) return;
         this.init();
         if (!this.ctx) return;
 
         const now = this.ctx.currentTime;
-        const baseFreq = this.ragaScale[noteIndex % this.ragaScale.length];
+        const baseNote = this.ragaScale[noteIndex % this.ragaScale.length];
+        const pitchJitter = 1.0 + (Math.random() - 0.5) * 0.025; // ±1.25% organic sitar fret nuance
+        const baseFreq = baseNote * pitchJitter;
 
         // Fundamental oscillator with subtle microtonal pitch meend (slur)
         const osc = this.ctx.createOscillator();
@@ -144,7 +193,7 @@ class SoundEngine {
         osc.connect(filter);
         overtone.connect(filter);
         filter.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.getDestination());
 
         osc.start(now);
         overtone.start(now);
@@ -159,7 +208,9 @@ class SoundEngine {
         if (!this.ctx) return;
 
         const noteIdx = Math.min(step - 1, this.ragaScale.length - 1);
-        const freq = this.ragaScale[noteIdx];
+        const baseFreq = this.ragaScale[noteIdx];
+        const pitchJitter = 1.0 + (Math.random() - 0.5) * 0.02; // organic micro-pitch jitter
+        const freq = baseFreq * pitchJitter;
         const now = this.ctx.currentTime;
 
         const osc = this.ctx.createOscillator();
@@ -178,7 +229,7 @@ class SoundEngine {
 
         osc.connect(gain);
         shimmer.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.getDestination());
 
         osc.start(now);
         shimmer.start(now);
@@ -210,7 +261,7 @@ class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.48);
 
         osc.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.getDestination());
 
         osc.start(now);
         osc.stop(now + 0.5);
@@ -235,7 +286,7 @@ class SoundEngine {
         subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
 
         subOsc.connect(subGain);
-        subGain.connect(this.ctx.destination);
+        subGain.connect(this.getDestination());
         subOsc.start(now);
         subOsc.stop(now + 0.4);
 
@@ -279,7 +330,7 @@ class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
 
         osc.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.getDestination());
 
         osc.start(now);
         osc.stop(now + 0.3);
@@ -304,7 +355,7 @@ class SoundEngine {
         gongGain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
 
         gong.connect(gongGain);
-        gongGain.connect(this.ctx.destination);
+        gongGain.connect(this.getDestination());
         gong.start(now);
         gong.stop(now + 2.0);
 
@@ -323,7 +374,7 @@ class SoundEngine {
                 gain.gain.exponentialRampToValueAtTime(0.001, cNow + 0.8);
 
                 osc.connect(gain);
-                gain.connect(this.ctx.destination);
+                gain.connect(this.getDestination());
                 osc.start(cNow);
                 osc.stop(cNow + 0.85);
             }, idx * 110);
@@ -338,7 +389,9 @@ class SoundEngine {
 
         const now = this.ctx.currentTime;
         const scaleIdx = (index % this.ragaScale.length);
-        const freq = this.ragaScale[scaleIdx];
+        const baseFreq = this.ragaScale[scaleIdx];
+        const pitchJitter = 1.0 + (Math.random() - 0.5) * 0.02;
+        const freq = baseFreq * pitchJitter;
 
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
@@ -351,7 +404,7 @@ class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
 
         osc.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.getDestination());
         osc.start(now);
         osc.stop(now + 0.24);
 
@@ -378,7 +431,7 @@ class SoundEngine {
                 gain.gain.exponentialRampToValueAtTime(0.001, cNow + 0.4);
 
                 osc.connect(gain);
-                gain.connect(this.ctx.destination);
+                gain.connect(this.getDestination());
                 osc.start(cNow);
                 osc.stop(cNow + 0.42);
             }, idx * 70);
@@ -394,7 +447,7 @@ class SoundEngine {
         try {
             this.ambientGain = this.ctx.createGain();
             this.ambientGain.gain.setValueAtTime(0.025, this.ctx.currentTime);
-            this.ambientGain.connect(this.ctx.destination);
+            this.ambientGain.connect(this.getDestination());
 
             // Tanpura root notes: Low Pa (196Hz) and Sa (261.63Hz)
             const frequencies = [130.81, 196.00, 261.63];
