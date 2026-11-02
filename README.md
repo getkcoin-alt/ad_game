@@ -1,9 +1,11 @@
 # 🦚 Rangoli Utsav: Jewel of India (रंगोली उत्सव)
 ### A Relaxing Android Match-3 Journey of Color, Culture, and Courtyard Elegance
 
-[![Vercel Deployment](https://img.shields.io/badge/Hosted%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://ad-game-theta.vercel.app)
+[![Vercel Deployment](https://img.shields.io/badge/Hosted%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://rangoli-jewel-utsav.vercel.app)
 [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Web-green?style=for-the-badge&logo=android)](https://github.com/getkcoin-alt/ad_game)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
+
+🎮 **Play Live Now on Vercel**: [https://rangoli-jewel-utsav.vercel.app](https://rangoli-jewel-utsav.vercel.app)
 
 ---
 
