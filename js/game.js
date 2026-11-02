@@ -10,7 +10,14 @@
  */
 class HapticEngine {
     static isSupported() {
-        return typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
+        const isEnabled = window.StorageManager?.data?.hapticsEnabled !== false;
+        return isEnabled && typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
+    }
+
+    static setEnabled(bool) {
+        if (window.StorageManager) {
+            window.StorageManager.setHapticsEnabled(bool);
+        }
     }
 
     static lightTap() {
@@ -88,10 +95,36 @@ class GameController {
 
         this.currentLang = window.StorageManager.data.language || 'en';
 
+        // Apply audio levels from storage
+        const sm = window.StorageManager;
+        const ae = window.AudioEngine;
+        if (ae && sm) {
+            ae.soundEnabled = sm.data.soundEnabled !== false;
+            ae.musicEnabled = sm.data.musicEnabled !== false;
+            ae.setSoundVolume(sm.data.soundVolume ?? 0.8);
+            ae.setMusicVolume(sm.data.musicVolume ?? 0.6);
+        }
+
         this.bindEvents();
         this.updateHeaderUI();
+        this.updateSettingsUI();
+        this.updateNavBadges();
         this.applyLanguage(this.currentLang);
         this.showScreen('menu-screen');
+
+        // Start loop music on first interaction (browser autoplay policy safe)
+        const startAudioOnInteraction = () => {
+            if (window.AudioEngine) {
+                window.AudioEngine.init();
+                if (window.AudioEngine.musicEnabled && !window.AudioEngine.isMusicPlaying) {
+                    window.AudioEngine.startMusicLoop();
+                }
+            }
+            window.removeEventListener('pointerdown', startAudioOnInteraction);
+            window.removeEventListener('keydown', startAudioOnInteraction);
+        };
+        window.addEventListener('pointerdown', startAudioOnInteraction, { once: true });
+        window.addEventListener('keydown', startAudioOnInteraction, { once: true });
 
         // Start render loop
         this.startLoop();
@@ -393,6 +426,87 @@ class GameController {
     }
 
     bindUIButtons() {
+        // Settings Hub & Bottom Navigation Dock
+        document.getElementById('settings-btn')?.addEventListener('click', () => {
+            this.showSettingsModal();
+        });
+        document.getElementById('settings-close-btn')?.addEventListener('click', () => {
+            document.getElementById('settings-modal')?.classList.add('hidden');
+            document.getElementById('settings-modal')?.classList.remove('flex');
+        });
+
+        // Bottom Dock Tab Navigation
+        document.getElementById('nav-map')?.addEventListener('click', () => {
+            this.showScreen('menu-screen');
+        });
+        document.getElementById('nav-courtyard')?.addEventListener('click', () => {
+            this.showScreen('courtyard-screen');
+        });
+        document.getElementById('nav-saheli')?.addEventListener('click', () => {
+            this.showSaheliModal();
+        });
+        document.getElementById('nav-shagun')?.addEventListener('click', () => {
+            this.showWheelModal();
+        });
+        document.getElementById('nav-settings')?.addEventListener('click', () => {
+            this.showSettingsModal();
+        });
+
+        // Settings Hub Controls
+        document.getElementById('settings-sfx-slider')?.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value, 10);
+            const label = document.getElementById('settings-sfx-val');
+            if (label) label.textContent = `${val}%`;
+            const normalized = val / 100;
+            window.AudioEngine.setSoundVolume(normalized);
+            window.StorageManager.setVolumes(normalized, null);
+        });
+
+        document.getElementById('settings-music-slider')?.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value, 10);
+            const label = document.getElementById('settings-music-val');
+            if (label) label.textContent = `${val}%`;
+            const normalized = val / 100;
+            window.AudioEngine.setMusicVolume(normalized);
+            window.StorageManager.setVolumes(null, normalized);
+        });
+
+        document.getElementById('settings-haptics-toggle')?.addEventListener('change', (e) => {
+            const enabled = !!e.target.checked;
+            HapticEngine.setEnabled(enabled);
+            if (enabled) HapticEngine.lightTap();
+        });
+
+        document.getElementById('settings-lang-btn')?.addEventListener('click', () => {
+            this.currentLang = (this.currentLang === 'en') ? 'hi' : 'en';
+            window.StorageManager.data.language = this.currentLang;
+            window.StorageManager.save();
+            this.applyLanguage(this.currentLang);
+            this.updateSettingsUI();
+        });
+
+        document.getElementById('settings-how-to-play-btn')?.addEventListener('click', () => {
+            const modal = document.getElementById('how-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        });
+
+        document.getElementById('settings-reset-btn')?.addEventListener('click', () => {
+            const dict = window.I18N[this.currentLang] || window.I18N.en;
+            const msg = dict.resetConfirmPrompt || "Are you sure you want to reset all game progress? This will reset levels, stars, coins, and haveli decor!";
+            if (confirm(msg)) {
+                window.StorageManager.resetProgress();
+                this.updateHeaderUI();
+                this.updateSettingsUI();
+                this.showScreen('menu-screen');
+                document.getElementById('settings-modal')?.classList.add('hidden');
+                document.getElementById('settings-modal')?.classList.remove('flex');
+                alert((this.currentLang === 'hi') ? "प्रगति सफलतापूर्वक रीसेट कर दी गई!" : "All progress reset successfully!");
+            }
+        });
+
         // How to Play Guide Modal
         document.getElementById('how-to-play-btn')?.addEventListener('click', () => {
             const modal = document.getElementById('how-modal');
@@ -557,18 +671,104 @@ class GameController {
 
         const langBtn = document.getElementById('lang-toggle-btn');
         if (langBtn) langBtn.textContent = (lang === 'en') ? 'हिन्दी' : 'English';
+        const settingsLangText = document.getElementById('settings-lang-text');
+        if (settingsLangText) settingsLangText.textContent = (lang === 'en') ? 'हिन्दी' : 'English';
         this.updateLivesTimerUI();
+    }
+
+    showSettingsModal() {
+        this.updateSettingsUI();
+        const modal = document.getElementById('settings-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    }
+
+    updateSettingsUI() {
+        const sm = window.StorageManager;
+        if (!sm) return;
+
+        const sfxSlider = document.getElementById('settings-sfx-slider');
+        const sfxVal = document.getElementById('settings-sfx-val');
+        const sfxVol = Math.round((sm.data.soundVolume ?? 0.8) * 100);
+        if (sfxSlider) sfxSlider.value = sfxVol;
+        if (sfxVal) sfxVal.textContent = `${sfxVol}%`;
+
+        const musicSlider = document.getElementById('settings-music-slider');
+        const musicVal = document.getElementById('settings-music-val');
+        const musicVol = Math.round((sm.data.musicVolume ?? 0.6) * 100);
+        if (musicSlider) musicSlider.value = musicVol;
+        if (musicVal) musicVal.textContent = `${musicVol}%`;
+
+        const hapticsToggle = document.getElementById('settings-haptics-toggle');
+        if (hapticsToggle) hapticsToggle.checked = (sm.data.hapticsEnabled !== false);
+
+        const artisanIdEl = document.getElementById('settings-artisan-id');
+        if (artisanIdEl) artisanIdEl.textContent = sm.data.artisanId || '#RU-82910';
+
+        const langBtnText = document.getElementById('settings-lang-text');
+        if (langBtnText) langBtnText.textContent = (this.currentLang === 'en') ? 'हिन्दी' : 'English';
+    }
+
+    updateNavBadges() {
+        const sm = window.StorageManager;
+        if (!sm) return;
+
+        const saheliBadge = document.getElementById('nav-saheli-badge');
+        if (saheliBadge) {
+            const hasGifts = (sm.data.pendingReceivedGifts || 0) > 0;
+            const hasChest = !sm.isChestClaimed(1);
+            if (hasGifts || hasChest) {
+                saheliBadge.classList.remove('hidden');
+            } else {
+                saheliBadge.classList.add('hidden');
+            }
+        }
+
+        const shagunBadge = document.getElementById('nav-shagun-badge');
+        if (shagunBadge) {
+            if (sm.canDailySpin()) {
+                shagunBadge.classList.remove('hidden');
+            } else {
+                shagunBadge.classList.add('hidden');
+            }
+        }
     }
 
     showScreen(screenId) {
         // Dismiss modal overlays when switching screens
-        ['win-modal', 'fail-modal', 'pause-modal', 'how-modal', 'saheli-modal', 'ad-modal', 'lives-modal'].forEach(mId => {
+        ['win-modal', 'fail-modal', 'pause-modal', 'how-modal', 'saheli-modal', 'ad-modal', 'lives-modal', 'wheel-modal', 'settings-modal'].forEach(mId => {
             const m = document.getElementById(mId);
             if (m) {
                 m.classList.add('hidden');
                 m.classList.remove('flex');
             }
         });
+
+        // Ergonomic Bottom Navigation Auto-hide / Auto-show
+        const bottomNav = document.getElementById('bottom-nav');
+        if (bottomNav) {
+            if (screenId === 'game-screen') {
+                bottomNav.classList.add('hidden-dock');
+            } else {
+                bottomNav.classList.remove('hidden-dock');
+            }
+        }
+
+        // Highlight active dock tab
+        const navMap = document.getElementById('nav-map');
+        const navCourtyard = document.getElementById('nav-courtyard');
+        const navSaheli = document.getElementById('nav-saheli');
+        const navShagun = document.getElementById('nav-shagun');
+        const navSettings = document.getElementById('nav-settings');
+        [navMap, navCourtyard, navSaheli, navShagun, navSettings].forEach(tab => tab?.classList.remove('active'));
+
+        if (screenId === 'menu-screen') {
+            navMap?.classList.add('active');
+        } else if (screenId === 'courtyard-screen') {
+            navCourtyard?.classList.add('active');
+        }
 
         ['menu-screen', 'game-screen', 'courtyard-screen'].forEach(id => {
             const elem = document.getElementById(id);
@@ -612,6 +812,7 @@ class GameController {
         if (starsEl) starsEl.textContent = sm.data.stars;
 
         this.updateLivesTimerUI();
+        this.updateNavBadges();
 
         // Pillar 2: Shringaar Blessing Streak Badge
         const streakEl = document.getElementById('header-streak');

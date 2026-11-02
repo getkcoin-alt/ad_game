@@ -36,10 +36,7 @@
                 </div>
             </div>
             <div class="header-actions">
-                <button id="how-to-play-btn" class="icon-btn" title="How to Play">❓</button>
-                <button id="sound-toggle-btn" class="icon-btn" title="Toggle Sound">🔊</button>
-                <button id="music-toggle-btn" class="icon-btn" title="Toggle Music">🎵</button>
-                <button id="lang-toggle-btn" class="lang-btn">हिन्दी</button>
+                <button id="settings-btn" class="icon-btn" title="Settings">⚙️</button>
             </div>
         </header>
 
@@ -155,6 +152,32 @@
                 </button>
             </div>
         </main>
+
+        <!-- Universal Ergonomic Bottom Navigation Dock -->
+        <nav id="bottom-nav" class="bottom-nav-dock">
+            <button id="nav-map" class="nav-tab active" data-screen="menu-screen" title="Levels">
+                <span class="nav-icon">🗺️</span>
+                <span class="nav-label" data-i18n="navLevels">Levels</span>
+            </button>
+            <button id="nav-courtyard" class="nav-tab" data-screen="courtyard-screen" title="Haveli">
+                <span class="nav-icon">🏛️</span>
+                <span class="nav-label" data-i18n="navCourtyard">Haveli</span>
+            </button>
+            <button id="nav-saheli" class="nav-tab" data-modal="saheli-modal" title="Saheli Circle">
+                <span class="nav-icon">👭</span>
+                <span class="nav-label" data-i18n="navSaheli">Saheli</span>
+                <span id="nav-saheli-badge" class="nav-badge hidden"></span>
+            </button>
+            <button id="nav-shagun" class="nav-tab" data-modal="wheel-modal" title="Shagun Wheel">
+                <span class="nav-icon">🎡</span>
+                <span class="nav-label" data-i18n="navShagun">Shagun</span>
+                <span id="nav-shagun-badge" class="nav-badge hidden"></span>
+            </button>
+            <button id="nav-settings" class="nav-tab" data-modal="settings-modal" title="Settings">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label" data-i18n="navSettings">Settings</span>
+            </button>
+        </nav>
 
         <!-- Modal: Victory (Badhai Ho!) -->
         <div id="win-modal" class="modal-overlay hidden">
@@ -376,6 +399,90 @@
                 </div>
 
                 <button id="lives-modal-close-btn" class="btn-primary" style="width: 100%; padding: 10px; font-size: 14px;" data-i18n="close">Close</button>
+            </div>
+        </div>
+
+        <!-- Settings Hub Modal ("Suvidha Kendra") -->
+        <div id="settings-modal" class="modal-overlay hidden">
+            <div class="modal-card ornate-border" style="max-width: 360px;">
+                <div class="modal-header">
+                    <h2 class="shimmer-text" data-i18n="settingsTitle" style="font-size: 20px;">Game Settings</h2>
+                </div>
+                
+                <div class="settings-content" style="display: flex; flex-direction: column; gap: 14px; margin: 16px 0;">
+                    <!-- SFX Volume -->
+                    <div class="settings-row">
+                        <div class="settings-label-group">
+                            <span class="settings-icon">🔊</span>
+                            <span data-i18n="sfxVol">Sound Effects</span>
+                        </div>
+                        <div class="settings-slider-wrapper">
+                            <input type="range" id="settings-sfx-slider" class="volume-slider" min="0" max="100" value="80">
+                            <span id="settings-sfx-val" class="slider-val-label">80%</span>
+                        </div>
+                    </div>
+
+                    <!-- Music Volume -->
+                    <div class="settings-row">
+                        <div class="settings-label-group">
+                            <span class="settings-icon">🎵</span>
+                            <span data-i18n="musicVol">Music ("Raga Tarang")</span>
+                        </div>
+                        <div class="settings-slider-wrapper">
+                            <input type="range" id="settings-music-slider" class="volume-slider" min="0" max="100" value="60">
+                            <span id="settings-music-val" class="slider-val-label">60%</span>
+                        </div>
+                    </div>
+
+                    <!-- Haptics Toggle -->
+                    <div class="settings-row">
+                        <div class="settings-label-group">
+                            <span class="settings-icon">📳</span>
+                            <span data-i18n="haptics">Vibration Haptics</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="settings-haptics-toggle" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+
+                    <!-- Language Switcher -->
+                    <div class="settings-row">
+                        <div class="settings-label-group">
+                            <span class="settings-icon">🌐</span>
+                            <span>Language / भाषा</span>
+                        </div>
+                        <button id="settings-lang-btn" class="btn-royal-action" style="padding: 6px 14px; font-size: 13px;">
+                            <span id="settings-lang-text">हिन्दी</span>
+                        </button>
+                    </div>
+
+                    <!-- How to Play Guide -->
+                    <div class="settings-row">
+                        <div class="settings-label-group">
+                            <span class="settings-icon">❓</span>
+                            <span data-i18n="howToPlayBtn">How to Play Guide</span>
+                        </div>
+                        <button id="settings-how-to-play-btn" class="btn-royal-action" style="padding: 6px 14px; font-size: 13px;" data-i18n="howToPlayTitle">
+                            Guide
+                        </button>
+                    </div>
+
+                    <!-- Artisan ID -->
+                    <div class="settings-id-card">
+                        <span style="font-size: 12px; color: var(--accent-sand, #E2D9E2);" data-i18n="artisanIdLabel">Artisan ID</span>
+                        <span id="settings-artisan-id" style="font-family: monospace; font-size: 14px; font-weight: 700; color: var(--accent-gold);">#RU-82910</span>
+                    </div>
+
+                    <!-- Danger Zone: Reset Progress -->
+                    <div style="border-top: 1px dashed rgba(255, 215, 0, 0.2); padding-top: 10px; margin-top: 4px;">
+                        <button id="settings-reset-btn" class="btn-danger-outline" style="width: 100%; padding: 8px; font-size: 12px; color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.5); background: rgba(255, 0, 0, 0.08); border-radius: 8px; cursor: pointer;">
+                            <span data-i18n="resetProgress">Reset All Progress</span>
+                        </button>
+                    </div>
+                </div>
+
+                <button id="settings-close-btn" class="btn-primary" style="width: 100%; padding: 10px; font-size: 14px;" data-i18n="close">Close</button>
             </div>
         </div>
     </div>

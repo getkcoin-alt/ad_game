@@ -376,7 +376,21 @@ const I18N = {
         refillModalTitle: "Heart Energy & Refill",
         refillModalSub: "Hearts regenerate naturally every 20 minutes.",
         refillAllCoins: "Instant Refill (100 🪙)",
-        refillAdFree: "Watch Video (+1 ❤️ Free)"
+        refillAdFree: "Watch Video (+1 ❤️ Free)",
+        settingsTitle: "Game Settings",
+        musicVol: "Music (\"Raga Tarang\")",
+        sfxVol: "Sound Effects",
+        haptics: "Vibration Haptics",
+        artisanIdLabel: "Artisan ID",
+        howToPlayBtn: "How to Play Guide",
+        resetProgress: "Reset All Progress",
+        resetConfirmPrompt: "Are you sure you want to reset all game progress? This will reset levels, stars, coins, and haveli decor!",
+        navLevels: "Levels",
+        navCourtyard: "Haveli",
+        navSaheli: "Saheli",
+        navShagun: "Shagun",
+        navSettings: "Settings",
+        settingsSaved: "Settings saved!"
     },
     hi: {
         gameTitle: "रंगोली उत्सव",
@@ -454,7 +468,21 @@ const I18N = {
         refillModalTitle: "प्राण ऊर्जा एवं नवीनीकरण",
         refillModalSub: "प्राण हर २० मिनट में स्वतः बनते हैं।",
         refillAllCoins: "तुरंत पूर्ण करें (१०० 🪙)",
-        refillAdFree: "छोटा संदेश देखें (+१ ❤️ मुफ़्त)"
+        refillAdFree: "छोटा संदेश देखें (+१ ❤️ मुफ़्त)",
+        settingsTitle: "खेल सेटिंग्स",
+        musicVol: "संगीत (\"राग तरंग\")",
+        sfxVol: "ध्वनि प्रभाव",
+        haptics: "स्पर्श कंपन (हैप्टिक्स)",
+        artisanIdLabel: "कारीगर पहचान",
+        howToPlayBtn: "खेलने की विधि",
+        resetProgress: "सभी प्रगति रीसेट करें",
+        resetConfirmPrompt: "क्या आप वाकई सभी खेल प्रगति रीसेट करना चाहते हैं? इससे स्तर, सितारे, सिक्के और हवेली सजावट रीसेट हो जाएगी!",
+        navLevels: "स्तर",
+        navCourtyard: "हवेली",
+        navSaheli: "सहेली",
+        navShagun: "शगुन",
+        navSettings: "सेटिंग्स",
+        settingsSaved: "सेटिंग्स सहेजी गईं!"
     }
 };
 

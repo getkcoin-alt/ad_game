@@ -38,6 +38,10 @@ class StorageManager {
             language: 'en',       // 'en' or 'hi'
             soundEnabled: true,
             musicEnabled: true,
+            soundVolume: 0.8,     // 0.0 to 1.0
+            musicVolume: 0.6,     // 0.0 to 1.0
+            hapticsEnabled: true, // Native vibration feedback
+            artisanId: '#RU-' + Math.floor(10000 + Math.random() * 90000),
             createdAt: Date.now()
         };
     }
@@ -293,6 +297,41 @@ class StorageManager {
         });
         this.save();
         return true;
+    }
+
+    // Settings Hub & Preferences
+    setVolumes(soundVol, musicVol) {
+        if (typeof soundVol === 'number') this.data.soundVolume = Math.max(0, Math.min(1, soundVol));
+        if (typeof musicVol === 'number') this.data.musicVolume = Math.max(0, Math.min(1, musicVol));
+        this.save();
+    }
+
+    setHapticsEnabled(enabled) {
+        this.data.hapticsEnabled = !!enabled;
+        this.save();
+    }
+
+    resetProgress() {
+        const artisanId = this.data.artisanId || ('#RU-' + Math.floor(10000 + Math.random() * 90000));
+        const language = this.data.language || 'en';
+        const soundEnabled = this.data.soundEnabled !== undefined ? this.data.soundEnabled : true;
+        const musicEnabled = this.data.musicEnabled !== undefined ? this.data.musicEnabled : true;
+        const soundVolume = this.data.soundVolume !== undefined ? this.data.soundVolume : 0.8;
+        const musicVolume = this.data.musicVolume !== undefined ? this.data.musicVolume : 0.6;
+        const hapticsEnabled = this.data.hapticsEnabled !== undefined ? this.data.hapticsEnabled : true;
+
+        this.data = {
+            ...this.getDefaultState(),
+            artisanId,
+            language,
+            soundEnabled,
+            musicEnabled,
+            soundVolume,
+            musicVolume,
+            hapticsEnabled
+        };
+        this.save();
+        return this.data;
     }
 }
 

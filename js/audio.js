@@ -10,12 +10,21 @@ class SoundEngine {
         this.ctx = null;
         this.soundEnabled = true;
         this.musicEnabled = true;
-        this.ambientGain = null;
-        this.isAmbientPlaying = false;
-        this.ambientOscillators = [];
+        this.soundVolume = 0.8;
+        this.musicVolume = 0.6;
         this.masterFilter = null;
         this.masterGain = null;
+        this.sfxGainNode = null;
+        this.musicGainNode = null;
         this.isFilterPaused = false;
+        
+        // Procedural Loop Music State ("Raga Tarang")
+        this.tanpuraGain = null;
+        this.tanpuraOscillators = [];
+        this.musicTimer = null;
+        this.musicStep = 0;
+        this.nextStepTime = 0;
+        this.isMusicPlaying = false;
         
         // Raga Bhupali pentatonic scale frequencies (Sa, Re, Ga, Pa, Dha, Sa')
         // Pentatonic scales are deeply rooted in Indian classical aesthetics and universally relaxing.
@@ -60,6 +69,16 @@ class SoundEngine {
 
                 this.masterFilter.connect(this.masterGain);
                 this.masterGain.connect(this.ctx.destination);
+
+                // Dedicated SFX channel
+                this.sfxGainNode = this.ctx.createGain();
+                this.sfxGainNode.gain.setValueAtTime(this.soundEnabled ? this.soundVolume : 0.0, this.ctx.currentTime);
+                this.sfxGainNode.connect(this.masterFilter);
+
+                // Dedicated Music channel
+                this.musicGainNode = this.ctx.createGain();
+                this.musicGainNode.gain.setValueAtTime(this.musicEnabled ? this.musicVolume : 0.0, this.ctx.currentTime);
+                this.musicGainNode.connect(this.masterFilter);
             } catch (e) {
                 console.warn('Master audio filter setup warning:', e);
             }
@@ -68,7 +87,28 @@ class SoundEngine {
 
     getDestination() {
         this.ensureMasterPipeline();
-        return this.masterFilter || (this.ctx ? this.ctx.destination : null);
+        return this.sfxGainNode || this.masterFilter || (this.ctx ? this.ctx.destination : null);
+    }
+
+    getMusicDestination() {
+        this.ensureMasterPipeline();
+        return this.musicGainNode || this.masterFilter || (this.ctx ? this.ctx.destination : null);
+    }
+
+    setSoundVolume(vol) {
+        this.soundVolume = Math.max(0, Math.min(1, vol));
+        if (this.ctx && this.sfxGainNode) {
+            const target = this.soundEnabled ? this.soundVolume : 0.0;
+            this.sfxGainNode.gain.setValueAtTime(target, this.ctx.currentTime);
+        }
+    }
+
+    setMusicVolume(vol) {
+        this.musicVolume = Math.max(0, Math.min(1, vol));
+        if (this.ctx && this.musicGainNode) {
+            const target = this.musicEnabled ? this.musicVolume : 0.0;
+            this.musicGainNode.gain.setValueAtTime(target, this.ctx.currentTime);
+        }
     }
 
     // Pillar 4: Web Audio Master Low-Pass Filter on Pause (22kHz -> 420Hz)
@@ -92,15 +132,23 @@ class SoundEngine {
 
     toggleSound() {
         this.soundEnabled = !this.soundEnabled;
+        if (this.ctx && this.sfxGainNode) {
+            const target = this.soundEnabled ? this.soundVolume : 0.0;
+            this.sfxGainNode.gain.setValueAtTime(target, this.ctx.currentTime);
+        }
         return this.soundEnabled;
     }
 
     toggleMusic() {
         this.musicEnabled = !this.musicEnabled;
+        if (this.ctx && this.musicGainNode) {
+            const target = this.musicEnabled ? this.musicVolume : 0.0;
+            this.musicGainNode.gain.setValueAtTime(target, this.ctx.currentTime);
+        }
         if (this.musicEnabled) {
-            this.startAmbient();
+            this.startMusicLoop();
         } else {
-            this.stopAmbient();
+            this.stopMusicLoop();
         }
         return this.musicEnabled;
     }
@@ -438,47 +486,199 @@ class SoundEngine {
         });
     }
 
-    // Ambient Meditative Tanpura Drone (Gentle Sa-Pa harmonic bed)
-    startAmbient() {
-        if (!this.musicEnabled || this.isAmbientPlaying) return;
-        this.init();
-        if (!this.ctx) return;
+    // Voice 1: Tanpura Drone Bed (Continuous Sa-Pa harmonic resonance with micro-chorus)
+    startTanpuraDrone() {
+        if (!this.ctx || this.tanpuraOscillators.length > 0) return;
+        const dest = this.getMusicDestination();
+        if (!dest) return;
 
         try {
-            this.ambientGain = this.ctx.createGain();
-            this.ambientGain.gain.setValueAtTime(0.025, this.ctx.currentTime);
-            this.ambientGain.connect(this.getDestination());
+            this.tanpuraGain = this.ctx.createGain();
+            this.tanpuraGain.gain.setValueAtTime(0.045, this.ctx.currentTime);
+            this.tanpuraGain.connect(dest);
 
-            // Tanpura root notes: Low Pa (196Hz) and Sa (261.63Hz)
-            const frequencies = [130.81, 196.00, 261.63];
-            this.ambientOscillators = [];
+            // Tanpura root frequencies: Low Sa (130.81Hz), Low Pa (196.00Hz), Middle Sa (261.63Hz)
+            const freqs = [130.81, 131.15, 196.00, 195.65, 261.63];
+            this.tanpuraOscillators = [];
 
-            frequencies.forEach(f => {
+            freqs.forEach((f, idx) => {
                 const osc = this.ctx.createOscillator();
-                osc.type = 'sine';
+                osc.type = (idx % 2 === 0) ? 'sine' : 'triangle';
                 osc.frequency.setValueAtTime(f, this.ctx.currentTime);
-                osc.connect(this.ambientGain);
-                osc.start();
-                this.ambientOscillators.push(osc);
-            });
 
-            this.isAmbientPlaying = true;
+                const oscGain = this.ctx.createGain();
+                oscGain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+                osc.connect(oscGain);
+                oscGain.connect(this.tanpuraGain);
+
+                osc.start();
+                this.tanpuraOscillators.push(osc);
+            });
         } catch (e) {
-            console.warn('Ambient drone start error:', e);
+            console.warn('Tanpura drone start error:', e);
         }
     }
 
-    stopAmbient() {
-        if (!this.isAmbientPlaying) return;
-        try {
-            this.ambientOscillators.forEach(osc => {
-                try { osc.stop(); } catch(e) {}
-            });
-            this.ambientOscillators = [];
-            this.isAmbientPlaying = false;
-        } catch (e) {
-            console.warn('Ambient drone stop error:', e);
+    stopTanpuraDrone() {
+        this.tanpuraOscillators.forEach(osc => {
+            try { osc.stop(); } catch(e) {}
+        });
+        this.tanpuraOscillators = [];
+        this.tanpuraGain = null;
+    }
+
+    // Voice 2, 3, 4: Procedural Loop Music ("Raga Tarang" at 96 BPM)
+    playMusicStep(step, time) {
+        if (!this.ctx || !this.musicEnabled) return;
+        const dest = this.getMusicDestination();
+        if (!dest) return;
+
+        // 1. Voice 2: Soft Tabla Percussive Groove (Dadra / Tintal cadence)
+        // Bayan (low resonant bass "Ghe"): hits on beat 1 (step 0, 16, 32, 48) and beat 3 (step 8, 24, 40, 56)
+        if (step % 8 === 0) {
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(115, time);
+            osc.frequency.exponentialRampToValueAtTime(48, time + 0.16);
+            g.gain.setValueAtTime(0.10, time);
+            g.gain.exponentialRampToValueAtTime(0.001, time + 0.16);
+            osc.connect(g);
+            g.connect(dest);
+            osc.start(time);
+            osc.stop(time + 0.18);
         }
+
+        // Dayan (treble rim snap "Tin"): hits on beat 2 and 4 (step 4, 12, 20, 28, 36, 44, 52, 60)
+        if (step % 8 === 4) {
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(460, time);
+            osc.frequency.exponentialRampToValueAtTime(240, time + 0.05);
+            g.gain.setValueAtTime(0.05, time);
+            g.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+            osc.connect(g);
+            g.connect(dest);
+            osc.start(time);
+            osc.stop(time + 0.06);
+        }
+
+        // 2. Voice 3: Sitar Melodic Phrases (Raga Bhupali: Sa, Re, Ga, Pa, Dha)
+        // 64-step cyclical loop (16 bars of 4 beats)
+        const sitarPattern = {
+            // Bars 1-4: Serene ascending phrase
+            0: 261.63,  // Sa (C4)
+            4: 293.66,  // Re (D4)
+            8: 329.63,  // Ga (E4)
+            12: 392.00, // Pa (G4)
+            // Bars 5-8: Regal flourish rising to Taar Sa
+            16: 329.63, // Ga (E4)
+            20: 392.00, // Pa (G4)
+            24: 440.00, // Dha (A4)
+            28: 523.25, // Sa' (C5)
+            // Bars 9-12: Descending cascade
+            32: 440.00, // Dha (A4)
+            36: 392.00, // Pa (G4)
+            40: 329.63, // Ga (E4)
+            44: 293.66, // Re (D4)
+            // Bars 13-16: Resolving resting cadence
+            48: 329.63, // Ga (E4)
+            52: 293.66, // Re (D4)
+            56: 261.63  // Sa (C4 - sustained resolution)
+        };
+
+        const sitarFreq = sitarPattern[step];
+        if (sitarFreq) {
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            osc.type = 'sawtooth';
+
+            // Microtonal string bend (meend) upward by ~1.5%
+            osc.frequency.setValueAtTime(sitarFreq * 0.985, time);
+            osc.frequency.exponentialRampToValueAtTime(sitarFreq, time + 0.07);
+
+            // Resonant bandpass filter to shape authentic sitar harmonics
+            const sitarFilter = this.ctx.createBiquadFilter();
+            sitarFilter.type = 'bandpass';
+            sitarFilter.frequency.setValueAtTime(sitarFreq * 2.2, time);
+            sitarFilter.Q.setValueAtTime(3.2, time);
+
+            g.gain.setValueAtTime(0.075, time);
+            g.gain.exponentialRampToValueAtTime(0.001, time + 0.52);
+
+            osc.connect(sitarFilter);
+            sitarFilter.connect(g);
+            g.connect(dest);
+            osc.start(time);
+            osc.stop(time + 0.55);
+        }
+
+        // 3. Voice 4: Santur Bell Sparkles (high crystalline shimmer on off-beats)
+        const santurSparkles = {
+            6: 783.99,   // High Pa (G5)
+            14: 1046.50, // Taar Sa (C6)
+            22: 659.25,  // High Ga (E5)
+            38: 880.00,  // High Dha (A5)
+            54: 1046.50  // Taar Sa (C6)
+        };
+
+        const sparkleFreq = santurSparkles[step];
+        if (sparkleFreq) {
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(sparkleFreq, time);
+            osc.frequency.exponentialRampToValueAtTime(sparkleFreq * 1.01, time + 0.18);
+            g.gain.setValueAtTime(0.035, time);
+            g.gain.exponentialRampToValueAtTime(0.0005, time + 0.22);
+            osc.connect(g);
+            g.connect(dest);
+            osc.start(time);
+            osc.stop(time + 0.24);
+        }
+    }
+
+    startMusicLoop() {
+        if (!this.musicEnabled || this.isMusicPlaying) return;
+        this.init();
+        if (!this.ctx) return;
+
+        this.isMusicPlaying = true;
+        this.startTanpuraDrone();
+
+        this.musicStep = 0;
+        this.nextStepTime = this.ctx.currentTime + 0.05;
+        const stepDuration = (60 / 96) / 4; // 96 BPM 16th note (approx 0.15625s)
+
+        if (this.musicTimer) clearInterval(this.musicTimer);
+        this.musicTimer = setInterval(() => {
+            if (!this.isMusicPlaying || !this.ctx) return;
+            const now = this.ctx.currentTime;
+            while (this.nextStepTime < now + 0.15) {
+                this.playMusicStep(this.musicStep, this.nextStepTime);
+                this.musicStep = (this.musicStep + 1) % 64;
+                this.nextStepTime += stepDuration;
+            }
+        }, 30);
+    }
+
+    stopMusicLoop() {
+        if (!this.isMusicPlaying) return;
+        if (this.musicTimer) {
+            clearInterval(this.musicTimer);
+            this.musicTimer = null;
+        }
+        this.stopTanpuraDrone();
+        this.isMusicPlaying = false;
+    }
+
+    startAmbient() {
+        this.startMusicLoop();
+    }
+
+    stopAmbient() {
+        this.stopMusicLoop();
     }
 }
 
