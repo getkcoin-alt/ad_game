@@ -73,11 +73,12 @@ class GameController {
         this.hintTimer = setInterval(() => {
             if (this.state === 'PLAYING' && !this.selectedCell && !this.activeBooster) {
                 const idleTime = Date.now() - this.lastMoveTime;
-                if (idleTime > 4500 && !this.hintMove) {
+                const threshold = (this.currentLevelId === 1) ? 1200 : 2500;
+                if (idleTime > threshold && !this.hintMove) {
                     this.hintMove = this.grid.findHintMove();
                 }
             }
-        }, 1000);
+        }, 500);
     }
 
     resetHint() {
@@ -194,6 +195,25 @@ class GameController {
     }
 
     bindUIButtons() {
+        // How to Play Guide Modal
+        document.getElementById('how-to-play-btn')?.addEventListener('click', () => {
+            const modal = document.getElementById('how-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        });
+        document.getElementById('how-close-btn')?.addEventListener('click', () => {
+            document.getElementById('how-modal')?.classList.add('hidden');
+        });
+
+        // Prominent Play Button on Home Screen
+        document.getElementById('play-main-cta-btn')?.addEventListener('click', () => {
+            const sm = window.StorageManager;
+            const lvl = Math.min(sm.data.unlockedLevel || 1, LEVEL_CONFIGS.length);
+            this.startLevel(lvl);
+        });
+
         // Sound and Music toggles
         document.getElementById('sound-toggle-btn')?.addEventListener('click', () => {
             const on = window.AudioEngine.toggleSound();
@@ -302,9 +322,15 @@ class GameController {
             this.state = 'COURTYARD';
             this.renderCourtyardUpgradeList();
             this.updateHeaderUI();
+            requestAnimationFrame(() => {
+                if (this.courtyard) this.courtyard.resize();
+            });
         } else if (screenId === 'game-screen') {
             this.state = 'PLAYING';
             this.updateInGameUI();
+            requestAnimationFrame(() => {
+                if (this.renderer) this.renderer.resize();
+            });
         }
     }
 
@@ -319,6 +345,12 @@ class GameController {
         if (livesEl) livesEl.textContent = sm.data.lives;
         if (coinsEl) coinsEl.textContent = sm.data.coins;
         if (starsEl) starsEl.textContent = sm.data.stars;
+
+        const playCta = document.getElementById('play-cta-text');
+        if (playCta) {
+            const nextLvl = Math.min(sm.data.unlockedLevel || 1, LEVEL_CONFIGS.length);
+            playCta.textContent = (this.currentLang === 'hi') ? `स्तर ${nextLvl} खेलें` : `Play Level ${nextLvl}`;
+        }
     }
 
     renderLevelSelectGrid() {
@@ -388,6 +420,10 @@ class GameController {
         this.resetHint();
         this.updateInGameUI();
 
+        requestAnimationFrame(() => {
+            if (this.renderer) this.renderer.resize();
+        });
+
         window.AudioEngine.playSwipe();
     }
 
@@ -436,8 +472,23 @@ class GameController {
 
     attemptSwap(r1, c1, r2, c2) {
         if (!this.grid.canSwap(r1, c1, r2, c2)) {
-            // Invalid swap: bounce back animation
+            // Invalid swap: visual wobble and bounce-back feedback
             window.AudioEngine.playSwipe();
+            const cell1 = this.grid.get(r1, c1);
+            const cell2 = this.grid.get(r2, c2);
+            if (cell1?.gem && cell2?.gem) {
+                cell1.gem.animX = (c2 - c1) * 0.35;
+                cell1.gem.animY = (r2 - r1) * 0.35;
+                cell2.gem.animX = (c1 - c2) * 0.35;
+                cell2.gem.animY = (r1 - r2) * 0.35;
+            }
+            if (this.renderer) {
+                const cx = this.renderer.boardX + (((c1 + c2) / 2) * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                const cy = this.renderer.boardY + (((r1 + r2) / 2) * this.renderer.cellSize) + (this.renderer.cellSize / 2);
+                const msg = (this.currentLang === 'hi') ? "३ एक जैसे रंग मिलाएँ!" : "Match 3 in a line!";
+                this.renderer.spawnFloatingText(cx, cy, msg, '#F472B6', 15);
+            }
+            this.lastMoveTime = Date.now() - 3000;
             return;
         }
 

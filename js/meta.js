@@ -20,18 +20,30 @@ class CourtyardManager {
         this.canvas = document.getElementById(this.canvasId);
         if (this.canvas) {
             this.ctx = this.canvas.getContext('2d');
-            this.resize();
             window.addEventListener('resize', () => this.resize());
+            if (typeof ResizeObserver !== 'undefined' && this.canvas.parentElement) {
+                new ResizeObserver(() => this.resize()).observe(this.canvas.parentElement);
+            }
+            this.resize();
         }
     }
 
     resize() {
         if (!this.canvas) return;
-        const rect = this.canvas.parentElement.getBoundingClientRect();
-        this.canvas.width = rect.width * (window.devicePixelRatio || 1);
-        this.canvas.height = rect.height * (window.devicePixelRatio || 1);
+        const container = this.canvas.parentElement;
+        if (!container) return;
+
+        const rect = container.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        this.canvas.width = Math.floor(rect.width * dpr);
+        this.canvas.height = Math.floor(rect.height * dpr);
+        this.canvas.style.width = rect.width + 'px';
+        this.canvas.style.height = rect.height + 'px';
+
         if (this.ctx) {
-            this.ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+            this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         }
         this.render();
     }

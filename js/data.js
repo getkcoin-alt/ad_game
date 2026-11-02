@@ -266,6 +266,8 @@ const I18N = {
     en: {
         gameTitle: "Rangoli Utsav",
         gameSubtitle: "Jewel of India",
+        playNow: "Play Now",
+        howToPlayTitle: "How to Play",
         moves: "Moves",
         score: "Score",
         target: "Target",
@@ -317,6 +319,8 @@ const I18N = {
     hi: {
         gameTitle: "रंगोली उत्सव",
         gameSubtitle: "शाही रत्न यात्रा",
+        playNow: "अभी खेलें",
+        howToPlayTitle: "कैसे खेलें",
         moves: "चालें",
         score: "अंक",
         target: "लक्ष्य",

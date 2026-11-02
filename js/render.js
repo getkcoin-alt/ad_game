@@ -29,29 +29,39 @@ class GameRenderer {
     }
 
     initResize() {
-        const resize = () => {
+        this.resize = () => {
             const container = this.canvas.parentElement;
             if (!container) return;
 
             const rect = container.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) {
+                return;
+            }
+
             this.width = rect.width;
             this.height = rect.height;
 
-            this.canvas.width = this.width * this.dpr;
-            this.canvas.height = this.height * this.dpr;
-            this.ctx.scale(this.dpr, this.dpr);
+            this.canvas.width = Math.floor(this.width * this.dpr);
+            this.canvas.height = Math.floor(this.height * this.dpr);
+            this.canvas.style.width = this.width + 'px';
+            this.canvas.style.height = this.height + 'px';
+
+            this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
 
             // Compute 8x8 board layout inside container
-            const padding = 16;
+            const padding = 12;
             const availableSize = Math.min(this.width - (padding * 2), this.height - (padding * 2));
-            this.boardSize = Math.max(availableSize, 280);
+            this.boardSize = Math.max(availableSize, 260);
             this.cellSize = this.boardSize / 8;
             this.boardX = (this.width - this.boardSize) / 2;
             this.boardY = (this.height - this.boardSize) / 2;
         };
 
-        window.addEventListener('resize', resize);
-        resize();
+        window.addEventListener('resize', () => this.resize());
+        if (typeof ResizeObserver !== 'undefined' && this.canvas.parentElement) {
+            new ResizeObserver(() => this.resize()).observe(this.canvas.parentElement);
+        }
+        this.resize();
     }
 
     addScreenShake(amount = 6) {
@@ -150,6 +160,11 @@ class GameRenderer {
         // Draw Board Tiles & Gems
         this.drawGems(grid, selectedCell, hintMove);
 
+        // Draw Animated Hint Arrow
+        if (hintMove && hintMove.length === 2) {
+            this.drawHintArrow(hintMove[0], hintMove[1]);
+        }
+
         // Draw Over-Tile Obstacles (Marigold blooms)
         this.drawMarigolds(grid);
 
@@ -158,6 +173,39 @@ class GameRenderer {
 
         // Draw Floating Accolades
         this.updateAndDrawFloatingTexts();
+
+        this.ctx.restore();
+    }
+
+    drawHintArrow(p1, p2) {
+        const cs = this.cellSize;
+        const x1 = this.boardX + (p1.c * cs) + (cs / 2);
+        const y1 = this.boardY + (p1.r * cs) + (cs / 2);
+        const x2 = this.boardX + (p2.c * cs) + (cs / 2);
+        const y2 = this.boardY + (p2.r * cs) + (cs / 2);
+
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2;
+        const pulse = Math.abs(Math.sin(this.globalTime * 6)) * (cs * 0.08);
+
+        this.ctx.save();
+        this.ctx.strokeStyle = '#FFD700';
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.lineWidth = 3.5;
+        this.ctx.shadowColor = 'rgba(255, 215, 0, 0.9)';
+        this.ctx.shadowBlur = 12;
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(x1, y1);
+        this.ctx.lineTo(x2, y2);
+        this.ctx.stroke();
+
+        this.ctx.beginPath();
+        this.ctx.arc(midX, midY, 6 + pulse, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.strokeStyle = '#D97706';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
 
         this.ctx.restore();
     }

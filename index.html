@@ -31,6 +31,7 @@
                 </div>
             </div>
             <div class="header-actions">
+                <button id="how-to-play-btn" class="icon-btn" title="How to Play">❓</button>
                 <button id="sound-toggle-btn" class="icon-btn" title="Toggle Sound">🔊</button>
                 <button id="music-toggle-btn" class="icon-btn" title="Toggle Music">🎵</button>
                 <button id="lang-toggle-btn" class="lang-btn">हिन्दी</button>
@@ -42,6 +43,13 @@
             <div class="menu-hero">
                 <h1 class="game-logo-title shimmer-text" data-i18n="gameTitle">Rangoli Utsav</h1>
                 <p class="game-logo-sub" data-i18n="gameSubtitle">Jewel of India</p>
+
+                <div style="margin: 16px 0 8px;">
+                    <button id="play-main-cta-btn" class="btn-primary anim-pulse-gold" style="max-width: 280px; margin: 0 auto; font-size: 16px; padding: 12px 24px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <span>▶</span>
+                        <span id="play-cta-text" data-i18n="playNow">Play Level 1</span>
+                    </button>
+                </div>
             </div>
 
             <div class="menu-quick-actions">
@@ -206,6 +214,38 @@
                 </button>
                 <button id="ad-close-btn" class="btn-secondary" style="font-size: 12px; padding: 6px;" data-i18n="close">
                     Close Ad
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal: How to Play Illustrated Guide -->
+        <div id="how-modal" class="modal-overlay hidden">
+            <div class="modal-card" style="max-width: 360px; text-align: left;">
+                <h2 class="modal-title" style="text-align: center; width: 100%; font-size: 20px;" data-i18n="howToPlayTitle">How to Play</h2>
+                <div style="font-size: 13px; line-height: 1.5; display: flex; flex-direction: column; gap: 10px; width: 100%;">
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span style="font-size: 24px;">👆</span>
+                        <div><b>Tap & Swap</b>: Tap any jewel, then tap its neighbor to swap them! Or swipe across.</div>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span style="font-size: 24px;">💎</span>
+                        <div><b>Match 3+</b>: Align 3 identical colors to clear and earn points.</div>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span style="font-size: 24px;">☀️</span>
+                        <div><b>Chakra Wheel (Match 4)</b>: Fires a golden beam clearing an entire row or column.</div>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span style="font-size: 24px;">🦚</span>
+                        <div><b>Mayur Gem (Match 5)</b>: Swapping with any color sweeps every jewel of that color!</div>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span style="font-size: 24px;">🪔</span>
+                        <div><b>Light Diyas & Flowers</b>: Match next to clay Diyas to ignite them and harvest marigolds.</div>
+                    </div>
+                </div>
+                <button id="how-close-btn" class="btn-primary" style="margin-top: 6px;" data-i18n="close">
+                    Got it! (समझ गए)
                 </button>
             </div>
         </div>
