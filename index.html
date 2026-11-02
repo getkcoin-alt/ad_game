@@ -61,6 +61,10 @@
                     <span>🏛️</span>
                     <span data-i18n="courtyard">My Courtyard</span>
                 </button>
+                <button id="saheli-btn" class="btn-royal-action">
+                    <span>👭</span>
+                    <span data-i18n="saheliCircle">Saheli Circle</span>
+                </button>
                 <button id="wheel-btn" class="btn-royal-action">
                     <span>🎡</span>
                     <span data-i18n="shagunWheel">Shagun Wheel</span>
@@ -142,6 +146,13 @@
             <div id="courtyard-items-container" class="courtyard-renovation-list">
                 <!-- Renovation cards populated dynamically -->
             </div>
+
+            <div style="padding: 8px 16px 16px;">
+                <button id="courtyard-share-btn" class="btn-whatsapp" style="width: 100%;">
+                    <span>💬</span>
+                    <span data-i18n="shareCourtyard">Share Haveli on WhatsApp</span>
+                </button>
+            </div>
         </main>
 
         <!-- Modal: Victory (Badhai Ho!) -->
@@ -155,6 +166,10 @@
                     <div id="win-coins-earned" style="color: var(--accent-marigold); margin-top: 4px; font-weight: bold;">+60 Shagun Coins</div>
                 </div>
                 <button id="win-next-btn" class="btn-primary" data-i18n="nextLevel">Next Level</button>
+                <button id="win-share-btn" class="btn-whatsapp" style="width: 100%;">
+                    <span>💬</span>
+                    <span data-i18n="shareWhatsApp">Share Badhai on WhatsApp</span>
+                </button>
                 <button id="win-menu-btn" class="btn-secondary" data-i18n="close">Main Menu</button>
             </div>
         </div>
@@ -255,6 +270,66 @@
                 <button id="how-close-btn" class="btn-primary" style="margin-top: 6px;" data-i18n="close">
                     Got it! (समझ गए)
                 </button>
+            </div>
+        </div>
+
+        <!-- Modal: Saheli Circle & Community Gifting (Pillar 3) -->
+        <div id="saheli-modal" class="modal-overlay hidden">
+            <div class="modal-card saheli-modal-card">
+                <div class="saheli-header-row">
+                    <span id="saheli-circle-badge" style="font-size: 32px;">🌸</span>
+                    <div style="flex: 1; text-align: left;">
+                        <h2 id="saheli-circle-name" class="modal-title" style="font-size: 18px; margin: 0;">Jaipur Gulal Queens</h2>
+                        <p id="saheli-circle-tagline" class="modal-subtitle" style="font-size: 11px; margin: 2px 0 0 0;">Homemakers & artisans creating festive magic together</p>
+                    </div>
+                </div>
+
+                <!-- Community Mandap Chest Card -->
+                <div class="community-chest-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <div style="font-size: 13px; font-weight: 700; color: var(--accent-gold); display: flex; align-items: center; gap: 6px;">
+                            <span>🏛️</span>
+                            <span data-i18n="communityChest">Community Mandap Chest</span>
+                        </div>
+                        <span id="saheli-chest-progress-text" style="font-size: 12px; font-weight: bold; color: var(--text-light);">60 / 60 ⭐</span>
+                    </div>
+                    <div class="community-progress-bar">
+                        <div id="saheli-chest-progress-fill" class="community-progress-fill" style="width: 100%;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <div style="font-size: 11px; color: var(--accent-marigold);">🎁 +200 🪙, +3 Boosters</div>
+                        <button id="saheli-claim-chest-btn" class="btn-primary anim-pulse-gold" style="padding: 4px 12px; font-size: 12px;" data-i18n="claimChest">Claim</button>
+                    </div>
+                </div>
+
+                <!-- Actions: Ask for lives & Invite -->
+                <div style="display: flex; gap: 8px; width: 100%;">
+                    <button id="saheli-request-life-btn" class="btn-secondary" style="flex: 1; padding: 8px 6px; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                        <span>❤️</span>
+                        <span data-i18n="askForLives">Ask for Lives</span>
+                    </button>
+                    <button id="saheli-invite-btn" class="btn-whatsapp" style="flex: 1; padding: 8px 6px; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                        <span>💬</span>
+                        <span data-i18n="inviteSahelis">Invite Sahelis</span>
+                    </button>
+                </div>
+
+                <!-- Inbox for received gifts if any -->
+                <div id="saheli-inbox-section" class="saheli-inbox-card">
+                    <span style="font-size: 22px;">💌</span>
+                    <span id="saheli-inbox-text" style="flex: 1; font-size: 12px; color: #FFF;">Sunita Sharma sent you +1 Life!</span>
+                    <button id="saheli-claim-gift-btn" class="btn-primary" style="padding: 4px 10px; font-size: 11px;" data-i18n="claimGift">Accept</button>
+                </div>
+
+                <!-- Member Feed & Life Requests -->
+                <div style="width: 100%; text-align: left;">
+                    <div style="font-size: 12px; font-weight: 700; color: var(--accent-gold); margin-bottom: 6px;" data-i18n="members">Circle Sahelis</div>
+                    <div id="saheli-members-container" class="saheli-members-list">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+
+                <button id="saheli-close-btn" class="btn-secondary" style="width: 100%; padding: 8px;" data-i18n="close">Close</button>
             </div>
         </div>
     </div>

@@ -153,6 +153,39 @@ it('should escalate Shringaar Blessing tiers and disburse appropriate starting b
     assert.strictEqual(sm.getStreakTier(), 0);
 });
 
+// 9. Pillar 3: Saheli Circle Reciprocal Gifting & Community Chest (Positive-Sum Social)
+it('should handle Saheli Circle reciprocal life gifting and community chest rewards', () => {
+    const sm = window.StorageManager;
+    const initialCoins = sm.data.coins;
+
+    // A. Gifting life gives player +10 coins (Reciprocity reward)
+    const gifted = sm.giftLifeToMember('s1');
+    assert.strictEqual(gifted, true);
+    assert.strictEqual(sm.data.coins, initialCoins + 10);
+    assert.ok(sm.data.giftedMembers.includes('s1'));
+
+    // Duplicate gift today prevented
+    const duplicate = sm.giftLifeToMember('s1');
+    assert.strictEqual(duplicate, false);
+
+    // B. Requesting lives and claiming received gift
+    sm.data.lives = 2; // drop lives
+    sm.requestCircleLives();
+    assert.ok(sm.data.pendingReceivedGifts > 0);
+
+    const claimed = sm.claimCircleGift();
+    assert.strictEqual(claimed, true);
+    assert.strictEqual(sm.data.lives, 3); // gained 1 life!
+
+    // C. Community Chest Claiming
+    assert.strictEqual(sm.isChestClaimed(1), false);
+    const chestClaimed = sm.claimCommunityChest(1, 200, { hammer: 1, anar: 1, swap: 1 });
+    assert.strictEqual(chestClaimed, true);
+    assert.strictEqual(sm.isChestClaimed(1), true);
+    // Double claim prevented
+    assert.strictEqual(sm.claimCommunityChest(1), false);
+});
+
 console.log(`\nEconomy & Psychology Tests Completed: ${passed}/${total} Passed!`);
 if (passed !== total) {
     process.exit(1);

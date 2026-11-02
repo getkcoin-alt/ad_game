@@ -274,6 +274,34 @@ class GameController {
             this.showWheelModal();
         });
 
+        // Pillar 3: Saheli Circle Modal button
+        document.getElementById('saheli-btn')?.addEventListener('click', () => {
+            this.showSaheliModal();
+        });
+        document.getElementById('saheli-close-btn')?.addEventListener('click', () => {
+            document.getElementById('saheli-modal')?.classList.add('hidden');
+        });
+        document.getElementById('saheli-claim-chest-btn')?.addEventListener('click', () => {
+            this.claimSaheliChest();
+        });
+        document.getElementById('saheli-request-life-btn')?.addEventListener('click', () => {
+            this.requestSaheliLife();
+        });
+        document.getElementById('saheli-claim-gift-btn')?.addEventListener('click', () => {
+            this.claimReceivedSaheliGift();
+        });
+        document.getElementById('saheli-invite-btn')?.addEventListener('click', () => {
+            this.shareOnWhatsApp('invite');
+        });
+
+        // WhatsApp Share Buttons on Victory & Courtyard
+        document.getElementById('win-share-btn')?.addEventListener('click', () => {
+            this.shareOnWhatsApp('victory');
+        });
+        document.getElementById('courtyard-share-btn')?.addEventListener('click', () => {
+            this.shareOnWhatsApp('courtyard');
+        });
+
         // In-Game Boosters buttons
         document.getElementById('booster-hammer-btn')?.addEventListener('click', () => {
             this.toggleBooster('hammer');
@@ -1376,6 +1404,207 @@ class GameController {
             ? `बधाई! आपको मिला: ${wonItem.label}`
             : `Badhai Ho! You received: ${wonItem.label}`;
         alert(alertMsg);
+    }
+
+    // Pillar 3: Saheli Circle & Community Social Methods
+    showSaheliModal() {
+        const sm = window.StorageManager;
+        const circleId = sm.data.currentCircleId || 'gulal_queens';
+        const circlesList = (typeof SAHELI_CIRCLES !== 'undefined') ? SAHELI_CIRCLES : (window.SAHELI_CIRCLES || []);
+        const circle = circlesList.find(c => c.id === circleId) || circlesList[0];
+
+        if (!circle) return;
+
+        const badgeEl = document.getElementById('saheli-circle-badge');
+        const nameEl = document.getElementById('saheli-circle-name');
+        const taglineEl = document.getElementById('saheli-circle-tagline');
+
+        if (badgeEl) badgeEl.textContent = circle.badge;
+        if (nameEl) nameEl.textContent = (this.currentLang === 'hi') ? circle.nameHi : circle.name;
+        if (taglineEl) taglineEl.textContent = (this.currentLang === 'hi') ? circle.taglineHi : circle.tagline;
+
+        // Calculate collective stars
+        const memberStars = circle.members.reduce((acc, m) => acc + m.stars, 0);
+        const totalStars = memberStars + (sm.data.stars || 0);
+        const targetStars = circle.targetStars || 60;
+        const progressPct = Math.min(100, (totalStars / targetStars) * 100);
+
+        const progFill = document.getElementById('saheli-chest-progress-fill');
+        const progText = document.getElementById('saheli-chest-progress-text');
+        const claimBtn = document.getElementById('saheli-claim-chest-btn');
+
+        if (progFill) progFill.style.width = `${progressPct}%`;
+        if (progText) progText.textContent = `${totalStars} / ${targetStars} ⭐`;
+
+        const isClaimed = sm.isChestClaimed(1);
+        if (claimBtn) {
+            if (isClaimed) {
+                claimBtn.textContent = (this.currentLang === 'hi') ? "✓ प्राप्त किया" : "✓ Claimed";
+                claimBtn.className = "btn-secondary";
+                claimBtn.disabled = true;
+            } else if (totalStars >= targetStars) {
+                claimBtn.textContent = (this.currentLang === 'hi') ? "शगुन खज़ाना लें" : "Claim Chest";
+                claimBtn.className = "btn-primary anim-pulse-gold";
+                claimBtn.disabled = false;
+            } else {
+                claimBtn.textContent = (this.currentLang === 'hi') ? "प्रगति जारी..." : "In Progress";
+                claimBtn.className = "btn-secondary";
+                claimBtn.disabled = true;
+            }
+        }
+
+        // Render Inbox
+        this.updateSaheliInboxUI();
+
+        // Render Members Feed
+        this.renderSaheliMemberList(circle);
+
+        const modal = document.getElementById('saheli-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    }
+
+    updateSaheliInboxUI() {
+        const sm = window.StorageManager;
+        const inboxCard = document.getElementById('saheli-inbox-section');
+        const inboxText = document.getElementById('saheli-inbox-text');
+        const pending = sm.data.pendingReceivedGifts || 0;
+
+        if (inboxCard) {
+            if (pending > 0) {
+                inboxCard.classList.remove('hidden');
+                if (inboxText) {
+                    inboxText.textContent = (this.currentLang === 'hi')
+                        ? `सुनीता शर्मा ने आपको +${pending} उपहार (प्राण ❤️) भेजा!`
+                        : `Sunita Sharma sent you +${pending} Gift (Life ❤️)!`;
+                }
+            } else {
+                inboxCard.classList.add('hidden');
+            }
+        }
+    }
+
+    renderSaheliMemberList(circle) {
+        const container = document.getElementById('saheli-members-container');
+        if (!container) return;
+        container.innerHTML = '';
+
+        const sm = window.StorageManager;
+        const giftedList = sm.data.giftedMembers || [];
+
+        circle.members.forEach(m => {
+            const row = document.createElement('div');
+            row.className = 'saheli-member-item';
+
+            const name = (this.currentLang === 'hi') ? m.nameHi : m.name;
+            const isGifted = giftedList.includes(m.id);
+
+            row.innerHTML = `
+                <div class="saheli-member-info">
+                    <div class="saheli-avatar">${m.avatar}</div>
+                    <div>
+                        <div style="font-weight: 700; color: var(--text-light);">${name}</div>
+                        <div style="color: var(--accent-gold); font-size: 11px;">⭐ ${m.stars} • Lv ${m.level}</div>
+                    </div>
+                </div>
+            `;
+
+            if (m.needsLife) {
+                const giftBtn = document.createElement('button');
+                giftBtn.className = `btn-gift-life ${isGifted ? 'gifted' : ''}`;
+                giftBtn.textContent = isGifted 
+                    ? ((this.currentLang === 'hi') ? "✓ भेजा गया" : "✓ Gifted")
+                    : ((this.currentLang === 'hi') ? "प्राण दें (+१० 🪙)" : "Gift Life (+10 🪙)");
+
+                if (!isGifted) {
+                    giftBtn.onclick = () => this.handleGiftLifeToMember(m.id, giftBtn);
+                }
+                row.appendChild(giftBtn);
+            }
+
+            container.appendChild(row);
+        });
+    }
+
+    handleGiftLifeToMember(memberId, btnElement) {
+        const sm = window.StorageManager;
+        if (sm.giftLifeToMember(memberId)) {
+            window.AudioEngine.playLevelVictory();
+            this.updateHeaderUI();
+
+            if (btnElement) {
+                btnElement.className = 'btn-gift-life gifted';
+                btnElement.textContent = (this.currentLang === 'hi') ? "✓ भेजा गया" : "✓ Gifted";
+                btnElement.onclick = null;
+            }
+
+            if (this.renderer) {
+                this.renderer.spawnFloatingText(this.renderer.width / 2, 80, "+10 Shagun Coins 🪙", "#FFD700", 20);
+            }
+        }
+    }
+
+    requestSaheliLife() {
+        const sm = window.StorageManager;
+        sm.requestCircleLives();
+        window.AudioEngine.playDiyaLit();
+        this.updateSaheliInboxUI();
+
+        const toast = (this.currentLang === 'hi')
+            ? "सहेली मंडल को प्राण संदेश भेजा गया!"
+            : "Life request sent to your Saheli Circle!";
+        alert(toast);
+    }
+
+    claimReceivedSaheliGift() {
+        const sm = window.StorageManager;
+        if (sm.claimCircleGift()) {
+            window.AudioEngine.playLevelVictory();
+            this.updateHeaderUI();
+            this.updateSaheliInboxUI();
+
+            if (this.renderer) {
+                this.renderer.spawnFloatingText(this.renderer.width / 2, 80, "+1 Life ❤️", "#EF4444", 22);
+            }
+        }
+    }
+
+    claimSaheliChest() {
+        const sm = window.StorageManager;
+        if (sm.claimCommunityChest(1, 200, { hammer: 1, anar: 1, swap: 1 })) {
+            window.AudioEngine.playFanfare();
+            this.updateHeaderUI();
+            this.showSaheliModal();
+
+            const toast = (this.currentLang === 'hi')
+                ? "बधाई! मंडप खज़ाना प्राप्त हुआ: +२०० सिक्के और ३ सहायक!"
+                : "Badhai Ho! Community Chest Claimed: +200 Coins & 3 Boosters!";
+            alert(toast);
+        }
+    }
+
+    shareOnWhatsApp(context = 'invite') {
+        let msg = "";
+        const url = "https://rangoli-jewel-utsav.vercel.app";
+
+        if (context === 'victory') {
+            msg = (this.currentLang === 'hi')
+                ? `🎉 मैंने रंगोली उत्सव में स्तर ${this.currentLevelId} पर शानदार विजय पाई है! 🪔✨ मेरे साथ खेलें और सहेली मंडल में शामिल हों: ${url}`
+                : `🎉 I achieved victory on Level ${this.currentLevelId} in Rangoli Utsav! 🪔✨ Play with me and join our Saheli Circle: ${url}`;
+        } else if (context === 'courtyard') {
+            msg = (this.currentLang === 'hi')
+                ? `🏛️ मैंने रंगोली उत्सव में हवेली का शाही आँगन सजाया है! 🦚✨ आकर देखें और अपनी हवेली सजाएं: ${url}`
+                : `🏛️ I've beautified our Royal Haveli Courtyard in Rangoli Utsav! 🦚✨ Come explore and renovate your own: ${url}`;
+        } else {
+            msg = (this.currentLang === 'hi')
+                ? `👭 सहेली, मेरे साथ "रंगोली उत्सव" खेलो! यहाँ हम मिलकर प्राण और शगुन उपहार भेजते हैं: ${url}`
+                : `👭 Saheli, join me in playing "Rangoli Utsav"! We share lives and celebrate festival gifts together: ${url}`;
+        }
+
+        const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+        window.open(waUrl, '_blank');
     }
 }
 

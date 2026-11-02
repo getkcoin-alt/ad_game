@@ -28,6 +28,11 @@ class StorageManager {
             },
             courtyardUnlocks: [], // Array of item IDs unlocked
             winStreak: 0,         // Shringaar Blessing Win-Streak
+            currentCircleId: 'gulal_queens', // Default Saheli Circle
+            claimedChestTiers: [],            // Claimed Community Chest Tiers
+            giftedMembers: [],                // Members gifted life today
+            pendingReceivedGifts: 1,          // Starting with 1 warm gift from Sunita!
+            lastCircleLifeRequest: 0,
             lastDailySpin: 0,
             spinStreak: 1,
             language: 'en',       // 'en' or 'hi'
@@ -206,6 +211,53 @@ class StorageManager {
     recordDailySpin() {
         this.data.lastDailySpin = Date.now();
         this.save();
+    }
+
+    // Pillar 3: Saheli Circle & Community Gifting
+    giftLifeToMember(memberId) {
+        if (!this.data.giftedMembers) this.data.giftedMembers = [];
+        if (this.data.giftedMembers.includes(memberId)) return false;
+
+        this.data.giftedMembers.push(memberId);
+        // Gifting a life rewards the player with +10 Shagun Coins (Reciprocity)
+        this.addCoins(10);
+        this.save();
+        return true;
+    }
+
+    requestCircleLives() {
+        this.data.lastCircleLifeRequest = Date.now();
+        // Friendly simulated response from Saheli circle arrives!
+        this.data.pendingReceivedGifts = (this.data.pendingReceivedGifts || 0) + 1;
+        this.save();
+        return true;
+    }
+
+    claimCircleGift() {
+        if ((this.data.pendingReceivedGifts || 0) > 0) {
+            this.addLives(1);
+            this.data.pendingReceivedGifts--;
+            this.save();
+            return true;
+        }
+        return false;
+    }
+
+    isChestClaimed(tier = 1) {
+        return (this.data.claimedChestTiers || []).includes(tier);
+    }
+
+    claimCommunityChest(tier = 1, rewardCoins = 200, rewardBoosters = { hammer: 1, anar: 1, swap: 1 }) {
+        if (this.isChestClaimed(tier)) return false;
+        if (!this.data.claimedChestTiers) this.data.claimedChestTiers = [];
+
+        this.data.claimedChestTiers.push(tier);
+        this.addCoins(rewardCoins);
+        Object.keys(rewardBoosters).forEach(b => {
+            this.addBooster(b, rewardBoosters[b]);
+        });
+        this.save();
+        return true;
     }
 }
 

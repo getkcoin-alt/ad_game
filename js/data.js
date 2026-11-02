@@ -261,6 +261,43 @@ const COURTYARD_ITEMS = [
     }
 ];
 
+// Pillar 3: Saheli Circles (Warm Collaborative Kitty Party Communities)
+const SAHELI_CIRCLES = [
+    {
+        id: "gulal_queens",
+        name: "Jaipur Gulal Queens",
+        nameHi: "जयपुर गुलाल सहेलियाँ",
+        badge: "🌸",
+        tagline: "Homemakers & artisans creating festive magic together",
+        taglineHi: "साथ मिलकर उत्सव और खुशियां बिखेरने वाली सहेलियाँ",
+        targetStars: 60,
+        rewardCoins: 200,
+        rewardBoosters: { hammer: 1, anar: 1, swap: 1 },
+        members: [
+            { id: "s1", name: "Sunita Sharma", nameHi: "सुनीता शर्मा", avatar: "🧕", level: 14, stars: 22, needsLife: true },
+            { id: "s2", name: "Pooja Verma", nameHi: "पूजा वर्मा", avatar: "👩‍💼", level: 12, stars: 18, needsLife: false },
+            { id: "s3", name: "Ananya Joshi", nameHi: "अनन्या जोशी", avatar: "👩‍🎨", level: 9, stars: 15, needsLife: true },
+            { id: "s4", name: "Kavita Rao", nameHi: "कविता राव", avatar: "👵", level: 16, stars: 25, needsLife: false }
+        ]
+    },
+    {
+        id: "mayur_mandana",
+        name: "Royal Mayur Artisans",
+        nameHi: "शाही मयूर मांडना संघ",
+        badge: "🦚",
+        tagline: "Masters of peacock rangoli and temple designs",
+        taglineHi: "मयूर रंगोली और मंदिर कला की निपुण सहेलियाँ",
+        targetStars: 75,
+        rewardCoins: 250,
+        rewardBoosters: { hammer: 1, anar: 2, swap: 1 },
+        members: [
+            { id: "m1", name: "Deepa Nair", nameHi: "दीपा नायर", avatar: "👩‍🍳", level: 15, stars: 28, needsLife: false },
+            { id: "m2", name: "Meenakshi Devi", nameHi: "मीनाक्षी देवी", avatar: "👵", level: 20, stars: 36, needsLife: true },
+            { id: "m3", name: "Radha Gupta", nameHi: "राधा गुप्ता", avatar: "🧕", level: 11, stars: 19, needsLife: false }
+        ]
+    }
+];
+
 // Complete English & Hindi Localization Dictionary
 const I18N = {
     en: {
@@ -317,7 +354,22 @@ const I18N = {
         adClaimReward: "Claim Reward!",
         shringaarStreak: "Shringaar Blessing",
         streakAtRisk: "Win-Streak at risk! Save your blessing:",
-        saveStreak: "Save Streak (+3 Moves)"
+        saveStreak: "Save Streak (+3 Moves)",
+        saheliCircle: "Saheli Circle",
+        communityChest: "Community Mandap Chest",
+        askForLives: "Ask for Lives",
+        shareWhatsApp: "Share on WhatsApp",
+        shareCourtyard: "Share Haveli on WhatsApp",
+        giftLife: "Gift Life (+10 🪙)",
+        lifeGifted: "✓ Gifted (+10 🪙)",
+        claimChest: "Claim Shagun Chest",
+        chestClaimed: "✓ Claimed",
+        members: "Sahelis",
+        inviteSahelis: "Invite Sahelis to Circle",
+        inboxGifts: "Shagun Gifts",
+        claimGift: "Accept Life (+1 ❤️)",
+        lifeRequestedToast: "Life request sent to your Sahelis!",
+        giftGivenToast: "You gifted a life and received +10 Shagun Coins!"
     },
     hi: {
         gameTitle: "रंगोली उत्सव",
@@ -373,7 +425,22 @@ const I18N = {
         adClaimReward: "उपहार प्राप्त करें!",
         shringaarStreak: "श्रृंगार वरदान",
         streakAtRisk: "वरदान खतरे में है! अपना वरदान बचाएं:",
-        saveStreak: "वरदान बचाएं (+३ चालें)"
+        saveStreak: "वरदान बचाएं (+३ चालें)",
+        saheliCircle: "सहेली मंडल",
+        communityChest: "सामुदायिक मंडप खज़ाना",
+        askForLives: "सहेलियों से प्राण माँगें",
+        shareWhatsApp: "व्हाट्सएप पर साझा करें",
+        shareCourtyard: "हवेली व्हाट्सएप पर दिखाएं",
+        giftLife: "प्राण दें (+१० 🪙)",
+        lifeGifted: "✓ भेजा गया (+१० 🪙)",
+        claimChest: "शगुन खज़ाना प्राप्त करें",
+        chestClaimed: "✓ प्राप्त किया",
+        members: "सहेलियाँ",
+        inviteSahelis: "सहेलियों को आमंत्रित करें",
+        inboxGifts: "शगुन उपहार",
+        claimGift: "प्राण स्वीकार करें (+१ ❤️)",
+        lifeRequestedToast: "सहेलियों को प्राण संदेश भेजा गया!",
+        giftGivenToast: "आपने सहेली को प्राण भेजा और १० सिक्के पाए!"
     }
 };
 
@@ -384,7 +451,8 @@ rootScope.SPECIAL_TYPES = SPECIAL_TYPES;
 rootScope.OBSTACLE_TYPES = OBSTACLE_TYPES;
 rootScope.LEVEL_CONFIGS = LEVEL_CONFIGS;
 rootScope.COURTYARD_ITEMS = COURTYARD_ITEMS;
+rootScope.SAHELI_CIRCLES = SAHELI_CIRCLES;
 rootScope.I18N = I18N;
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { GEM_TYPES, SPECIAL_TYPES, OBSTACLE_TYPES, LEVEL_CONFIGS, COURTYARD_ITEMS, I18N };
+    module.exports = { GEM_TYPES, SPECIAL_TYPES, OBSTACLE_TYPES, LEVEL_CONFIGS, COURTYARD_ITEMS, SAHELI_CIRCLES, I18N };
 }
