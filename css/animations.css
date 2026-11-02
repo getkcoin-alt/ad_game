@@ -1,0 +1,61 @@
+/* 
+ * Rangoli Utsav - Keyframe Animations & Juice FX
+ * Calibrated for smooth 60fps mobile GPU rendering without jank.
+ */
+
+@keyframes pulseGold {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 30px rgba(230, 25, 110, 0.4);
+    }
+}
+
+@keyframes floatGentle {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+@keyframes spinSlow {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes shimmerSweep {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.anim-pulse-gold {
+    animation: pulseGold 2.2s infinite ease-in-out;
+}
+
+.anim-float {
+    animation: floatGentle 3s infinite ease-in-out;
+}
+
+.anim-spin-slow {
+    animation: spinSlow 14s linear infinite;
+}
+
+.shimmer-text {
+    background: linear-gradient(90deg, #FFD700 0%, #FFFFFF 50%, #FFD700 100%);
+    background-size: 200% auto;
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: shimmerSweep 3s linear infinite;
+}

@@ -1,0 +1,187 @@
+/**
+ * Storage & State Persistence Engine for Rangoli Utsav
+ * Handles LocalStorage save-states, energy/heart timers, currency balances,
+ * level stars, courtyard renovations, and offline data safety.
+ */
+
+const STORAGE_KEY = 'rangoli_utsav_v1_save';
+
+class StorageManager {
+    constructor() {
+        this.data = this.getDefaultState();
+        this.load();
+    }
+
+    getDefaultState() {
+        return {
+            unlockedLevel: 1,
+            levelStars: {},       // { levelId: 1..3 }
+            levelScores: {},      // { levelId: number }
+            coins: 150,           // Starting Shagun Coins
+            stars: 0,             // Total stars collected for courtyard
+            lives: 5,             // Max lives
+            lastLifeTimestamp: Date.now(),
+            boosters: {
+                hammer: 2,        // Gulal Hammer
+                anar: 2,          // Anar Sparkler Bomb
+                swap: 2           // Magic Silk Swapper
+            },
+            courtyardUnlocks: [], // Array of item IDs unlocked
+            lastDailySpin: 0,
+            spinStreak: 1,
+            language: 'en',       // 'en' or 'hi'
+            soundEnabled: true,
+            musicEnabled: true,
+            createdAt: Date.now()
+        };
+    }
+
+    load() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                this.data = { ...this.getDefaultState(), ...parsed };
+            }
+        } catch (e) {
+            console.warn('Storage load failed, using defaults:', e);
+            this.data = this.getDefaultState();
+        }
+        this.updateLivesRegeneration();
+    }
+
+    save() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+        } catch (e) {
+            console.warn('Storage save failed:', e);
+        }
+    }
+
+    // Natural life regeneration: 1 life every 20 minutes (1200000 ms) up to 5
+    updateLivesRegeneration() {
+        const REGEN_TIME_MS = 20 * 60 * 1000;
+        const MAX_LIVES = 5;
+
+        if (this.data.lives >= MAX_LIVES) {
+            this.data.lastLifeTimestamp = Date.now();
+            return;
+        }
+
+        const now = Date.now();
+        const elapsed = now - this.data.lastLifeTimestamp;
+        const recovered = Math.floor(elapsed / REGEN_TIME_MS);
+
+        if (recovered > 0) {
+            this.data.lives = Math.min(MAX_LIVES, this.data.lives + recovered);
+            this.data.lastLifeTimestamp = now - (elapsed % REGEN_TIME_MS);
+            this.save();
+        }
+    }
+
+    getTimeUntilNextLife() {
+        if (this.data.lives >= 5) return 0;
+        const REGEN_TIME_MS = 20 * 60 * 1000;
+        const now = Date.now();
+        const elapsed = now - this.data.lastLifeTimestamp;
+        return Math.max(0, REGEN_TIME_MS - elapsed);
+    }
+
+    deductLife() {
+        this.updateLivesRegeneration();
+        if (this.data.lives > 0) {
+            this.data.lives--;
+            if (this.data.lives === 4) {
+                this.data.lastLifeTimestamp = Date.now();
+            }
+            this.save();
+            return true;
+        }
+        return false;
+    }
+
+    addLives(count = 1) {
+        this.data.lives = Math.min(5, this.data.lives + count);
+        this.save();
+    }
+
+    addCoins(amount) {
+        this.data.coins += amount;
+        this.save();
+        return this.data.coins;
+    }
+
+    deductCoins(amount) {
+        if (this.data.coins >= amount) {
+            this.data.coins -= amount;
+            this.save();
+            return true;
+        }
+        return false;
+    }
+
+    recordLevelWin(levelId, stars, score) {
+        // Record stars (keep best)
+        const currentStars = this.data.levelStars[levelId] || 0;
+        if (stars > currentStars) {
+            const starGain = stars - currentStars;
+            this.data.stars += starGain;
+            this.data.levelStars[levelId] = stars;
+        }
+
+        // Record high score
+        const currentScore = this.data.levelScores[levelId] || 0;
+        if (score > currentScore) {
+            this.data.levelScores[levelId] = score;
+        }
+
+        // Unlock next level
+        if (levelId >= this.data.unlockedLevel) {
+            this.data.unlockedLevel = levelId + 1;
+        }
+
+        // Win Shagun Reward
+        this.addCoins(stars * 20);
+        this.save();
+    }
+
+    unlockCourtyardItem(itemId, starsCost) {
+        if (this.data.courtyardUnlocks.includes(itemId)) return true;
+        if (this.data.stars >= starsCost) {
+            this.data.courtyardUnlocks.push(itemId);
+            this.save();
+            return true;
+        }
+        return false;
+    }
+
+    hasBooster(type) {
+        return (this.data.boosters[type] || 0) > 0;
+    }
+
+    useBooster(type) {
+        if (this.hasBooster(type)) {
+            this.data.boosters[type]--;
+            this.save();
+            return true;
+        }
+        return false;
+    }
+
+    addBooster(type, count = 1) {
+        this.data.boosters[type] = (this.data.boosters[type] || 0) + count;
+        this.save();
+    }
+
+    canDailySpin() {
+        const ONE_DAY_MS = 20 * 60 * 60 * 1000; // 20 hours window for daily cycle
+        return (Date.now() - this.data.lastDailySpin) > ONE_DAY_MS;
+    }
+
+    recordDailySpin() {
+        this.data.lastDailySpin = Date.now();
+        this.save();
+    }
+}
+
+window.StorageManager = new StorageManager();

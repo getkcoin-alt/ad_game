@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#1B081B">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Rangoli Utsav: Jewel of India</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+    <div id="app-container">
+        <!-- Top Sticky Header -->
+        <header class="app-header">
+            <div class="header-stats">
+                <div class="stat-chip" title="Lives">
+                    <span>❤️</span>
+                    <span id="header-lives">5</span>
+                </div>
+                <div class="stat-chip" title="Shagun Coins">
+                    <span>🪙</span>
+                    <span id="header-coins">150</span>
+                </div>
+                <div class="stat-chip" title="Courtyard Stars">
+                    <span>⭐</span>
+                    <span id="header-stars">0</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button id="sound-toggle-btn" class="icon-btn" title="Toggle Sound">🔊</button>
+                <button id="music-toggle-btn" class="icon-btn" title="Toggle Music">🎵</button>
+                <button id="lang-toggle-btn" class="lang-btn">हिन्दी</button>
+            </div>
+        </header>
+
+        <!-- Screen 1: Main Menu & Level Select -->
+        <main id="menu-screen" class="screen-view">
+            <div class="menu-hero">
+                <h1 class="game-logo-title shimmer-text" data-i18n="gameTitle">Rangoli Utsav</h1>
+                <p class="game-logo-sub" data-i18n="gameSubtitle">Jewel of India</p>
+            </div>
+
+            <div class="menu-quick-actions">
+                <button id="courtyard-btn" class="btn-royal-action anim-pulse-gold">
+                    <span>🏛️</span>
+                    <span data-i18n="courtyard">My Courtyard</span>
+                </button>
+                <button id="wheel-btn" class="btn-royal-action">
+                    <span>🎡</span>
+                    <span data-i18n="shagunWheel">Shagun Wheel</span>
+                </button>
+            </div>
+
+            <div id="level-select-container" class="level-grid">
+                <!-- Level cards rendered dynamically via JS -->
+            </div>
+        </main>
+
+        <!-- Screen 2: Active Match-3 Game Screen -->
+        <main id="game-screen" class="screen-view hidden">
+            <div class="ingame-top-panel">
+                <div class="ingame-stats-row">
+                    <div class="ingame-stat-box">
+                        <div class="label" data-i18n="level">Level</div>
+                        <div id="ingame-level-num" class="value">1</div>
+                    </div>
+                    <div class="ingame-stat-box">
+                        <div id="ingame-goal-badge" class="objective-badge">🎯 Goal</div>
+                    </div>
+                    <div class="ingame-stat-box">
+                        <div class="label" data-i18n="moves">Moves</div>
+                        <div id="ingame-moves" class="value" style="color: var(--accent-gold);">18</div>
+                    </div>
+                    <button id="pause-btn" class="icon-btn" title="Pause">⏸️</button>
+                </div>
+
+                <div class="ingame-stats-row" style="margin-bottom: 4px;">
+                    <div style="font-size: 13px; font-weight: 700;">
+                        <span data-i18n="score">Score</span>: <span id="ingame-score">0</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--accent-marigold);">
+                        <span data-i18n="target">Target</span>: <span id="ingame-target">1200</span>
+                    </div>
+                </div>
+
+                <div class="progress-bar-bg">
+                    <div id="ingame-progress-fill" class="progress-bar-fill"></div>
+                </div>
+            </div>
+
+            <div class="board-container">
+                <canvas id="game-canvas"></canvas>
+            </div>
+
+            <footer class="boosters-toolbar">
+                <button id="booster-hammer-btn" class="booster-btn" title="Gulal Hammer">
+                    <div class="booster-icon-circle">🔨</div>
+                    <span id="booster-hammer-count" class="booster-count-badge">2</span>
+                    <span class="booster-label" data-i18n="boosterHammer">Hammer</span>
+                </button>
+                <button id="booster-anar-btn" class="booster-btn" title="Anar Sparkler">
+                    <div class="booster-icon-circle">🎆</div>
+                    <span id="booster-anar-count" class="booster-count-badge">2</span>
+                    <span class="booster-label" data-i18n="boosterAnar">Anar</span>
+                </button>
+                <button id="booster-swap-btn" class="booster-btn" title="Magic Silk">
+                    <div class="booster-icon-circle">🪢</div>
+                    <span id="booster-swap-count" class="booster-count-badge">2</span>
+                    <span class="booster-label" data-i18n="boosterSwap">Silk</span>
+                </button>
+            </footer>
+        </main>
+
+        <!-- Screen 3: Haveli Courtyard Metagame Screen -->
+        <main id="courtyard-screen" class="screen-view hidden">
+            <div class="app-header" style="background: none; border-bottom: none;">
+                <button onclick="window.GameController.showScreen('menu-screen')" class="icon-btn">←</button>
+                <h3 style="color: var(--accent-gold); font-size: 16px;" data-i18n="courtyard">My Courtyard</h3>
+                <div style="width: 38px;"></div>
+            </div>
+
+            <div class="courtyard-canvas-container">
+                <canvas id="courtyard-canvas"></canvas>
+            </div>
+
+            <div id="courtyard-items-container" class="courtyard-renovation-list">
+                <!-- Renovation cards populated dynamically -->
+            </div>
+        </main>
+
+        <!-- Modal: Victory (Badhai Ho!) -->
+        <div id="win-modal" class="modal-overlay hidden">
+            <div class="modal-card">
+                <div style="font-size: 44px;">🦚</div>
+                <h2 class="modal-title" data-i18n="congratulations">Badhai Ho!</h2>
+                <div id="win-stars" style="font-size: 28px; color: var(--accent-gold); letter-spacing: 4px;">⭐⭐⭐</div>
+                <div class="modal-subtitle">
+                    <div><span data-i18n="score">Score</span>: <b id="win-score" style="color: var(--text-light); font-size: 16px;">0</b></div>
+                    <div id="win-coins-earned" style="color: var(--accent-marigold); margin-top: 4px; font-weight: bold;">+60 Shagun Coins</div>
+                </div>
+                <button id="win-next-btn" class="btn-primary" data-i18n="nextLevel">Next Level</button>
+                <button id="win-menu-btn" class="btn-secondary" data-i18n="close">Main Menu</button>
+            </div>
+        </div>
+
+        <!-- Modal: Defeat / Out of Moves (Compassionate Recovery) -->
+        <div id="fail-modal" class="modal-overlay hidden">
+            <div class="modal-card">
+                <div style="font-size: 40px;">🪔</div>
+                <h2 class="modal-title" data-i18n="levelFailed">Bas Thoda Sa Door!</h2>
+                <p id="fail-subtitle" class="modal-subtitle" data-i18n="levelFailedSub">
+                    So close to victory! Keep your moves going:
+                </p>
+                <button id="fail-ad-btn" class="btn-ad-reward">
+                    <span>🎬</span>
+                    <span data-i18n="watchAdMoves">Watch Short Ad (+3 Moves)</span>
+                </button>
+                <button id="fail-coins-btn" class="btn-secondary">
+                    <span>🪙</span>
+                    <span data-i18n="useCoinsMoves">Use 50 Coins (+3 Moves)</span>
+                </button>
+                <button id="fail-retry-btn" class="btn-secondary" style="background: none; border-color: rgba(255,255,255,0.2);" data-i18n="noThanks">
+                    Try Again
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal: Pause -->
+        <div id="pause-modal" class="modal-overlay hidden">
+            <div class="modal-card">
+                <h2 class="modal-title" data-i18n="pause">Pause</h2>
+                <button id="resume-btn" class="btn-primary" data-i18n="resume">Resume</button>
+                <button id="quit-btn" class="btn-secondary" data-i18n="close">Main Menu</button>
+            </div>
+        </div>
+
+        <!-- Modal: Daily Shagun Wheel -->
+        <div id="wheel-modal" class="modal-overlay hidden">
+            <div class="modal-card" style="max-width: 320px;">
+                <h2 class="modal-title" data-i18n="shagunWheel">Shagun Wheel</h2>
+                <div style="margin: 8px 0;">
+                    <canvas id="wheel-canvas" width="260" height="260"></canvas>
+                </div>
+                <button id="wheel-spin-btn" class="btn-primary" data-i18n="spin">Spin Wheel</button>
+                <button id="wheel-close-btn" class="btn-secondary" data-i18n="close">Close</button>
+            </div>
+        </div>
+
+        <!-- Modal: Ethical Rewarded Ad Showcase Simulator -->
+        <div id="ad-modal" class="modal-overlay hidden">
+            <div class="modal-card" style="background: #230822;">
+                <span class="ad-badge">ARTISAN SHOWCASE • AD</span>
+                <div class="artisan-ad-card">
+                    <h3>Handcrafted Jaipur Meenakari & Kundan</h3>
+                    <p>Authentic handmade heirloom jewelry crafted by master generational artisans of Rajasthan. Pure silver, natural gemstones, and royal royal heritage.</p>
+                </div>
+                <div id="ad-countdown" style="font-weight: bold; color: var(--accent-gold); font-size: 14px; margin: 4px 0;">
+                    Reward ready in 5s...
+                </div>
+                <button id="ad-claim-btn" class="btn-primary anim-pulse-gold" style="display: none;" data-i18n="adClaimReward">
+                    Claim Reward!
+                </button>
+                <button id="ad-close-btn" class="btn-secondary" style="font-size: 12px; padding: 6px;" data-i18n="close">
+                    Close Ad
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts in modular order -->
+    <script src="js/data.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/analytics.js"></script>
+    <script src="js/ads.js"></script>
+    <script src="js/grid.js"></script>
+    <script src="js/render.js"></script>
+    <script src="js/meta.js"></script>
+    <script src="js/game.js"></script>
+
+    <script>
+        // Bootstrap on load
+        window.addEventListener('DOMContentLoaded', () => {
+            window.GameController.init();
+
+            // Auto-navigation for automated testing / previews
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('startLevel')) {
+                window.GameController.startLevel(parseInt(params.get('startLevel'), 10) || 1);
+            } else if (params.get('showCourtyard')) {
+                window.GameController.showScreen('courtyard-screen');
+            }
+
+            // Register PWA service worker for offline functionality
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js').catch(err => {
+                    console.log('SW registration note:', err);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
